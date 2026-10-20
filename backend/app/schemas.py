@@ -103,7 +103,7 @@ class RetrievalStatus(BaseModel):
     corpus_version: int
     dense_ready: bool
     qdrant_ready: bool
-    mode: Literal["hybrid", "sparse"]
+    mode: Literal["hybrid", "sparse", "dense"]
 
 
 class OverviewOut(BaseModel):
@@ -205,6 +205,7 @@ class QueryIn(BaseModel):
     conversation_id: str | None = None
     categories: list[str] | None = None
     audience: str = "staff"
+    retrieval_preference: Literal["hybrid", "dense", "sparse"] = "hybrid"
 
 
 class ConversationSummary(BaseModel):

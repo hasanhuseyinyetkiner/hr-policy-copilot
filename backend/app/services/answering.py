@@ -40,9 +40,16 @@ def answer_question(
     conversation_id: str | None,
     categories: list[str] | None,
     audience: str,
+    retrieval_preference: str = "hybrid",
 ) -> QueryOut:
     if audience not in {"staff", "exec"}:
         raise AppError("invalid_audience", "Audience must be staff or exec.", 400)
+    if retrieval_preference not in {"hybrid", "dense", "sparse"}:
+        raise AppError(
+            "invalid_retrieval_preference",
+            "retrieval_preference must be hybrid, dense, or sparse.",
+            400,
+        )
     cleaned_categories = _clean_categories(categories)
     session = app_state.session_factory()
     try:
@@ -71,6 +78,7 @@ def answer_question(
             question,
             categories=cleaned_categories,
             audience=audience,
+            preference=retrieval_preference,
         )
         thresholds = Thresholds(
             min_overlap=app_state.settings.evidence_min_overlap,

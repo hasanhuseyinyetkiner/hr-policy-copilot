@@ -31,6 +31,8 @@ data/uploads*/
 data/qdrant*/
 data/private/
 data/e2e*
+data/qdrant-e2e*
+data/uploads-e2e*
 *.sqlite
 *.sqlite3
 *.db

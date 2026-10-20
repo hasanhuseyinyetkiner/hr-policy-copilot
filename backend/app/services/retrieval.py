@@ -41,7 +41,11 @@ def retrieve(
     *,
     categories: list[str] | None,
     audience: str,
+    preference: str = "hybrid",
 ) -> RetrievalResult:
+    """Retrieve current chunks. ``preference`` is hybrid|dense|sparse (eval / ablation)."""
+    if preference not in {"hybrid", "dense", "sparse"}:
+        preference = "hybrid"
     settings: Settings = app_state.settings
     query_terms = unique_tokens(question)
     sparse = sparse_search(
@@ -57,27 +61,29 @@ def retrieve(
     dense_scores: dict[str, float] = {}
     dense_ids: list[str] = []
     dense_error: str | None = None
+    run_dense = preference != "sparse"
     ready, ready_detail = model_status(settings)
-    if not ready:
-        dense_error = ready_detail
-    elif app_state.qdrant is None:
-        dense_error = "qdrant_unavailable"
-    else:
-        try:
-            vector = embed_texts([question], settings)[0]
-            found = search_points(
-                app_state.qdrant,
-                settings,
-                vector,
-                settings.retrieval_candidate_limit,
-            )
-            for chunk_id, score in found:
-                dense_ids.append(chunk_id)
-                dense_scores[chunk_id] = score
-        except EmbeddingsUnavailable as exc:
-            dense_error = exc.message
-        except Exception as exc:  # noqa: BLE001
-            dense_error = exc.__class__.__name__
+    if run_dense:
+        if not ready:
+            dense_error = ready_detail
+        elif app_state.qdrant is None:
+            dense_error = "qdrant_unavailable"
+        else:
+            try:
+                vector = embed_texts([question], settings)[0]
+                found = search_points(
+                    app_state.qdrant,
+                    settings,
+                    vector,
+                    settings.retrieval_candidate_limit,
+                )
+                for chunk_id, score in found:
+                    dense_ids.append(chunk_id)
+                    dense_scores[chunk_id] = score
+            except EmbeddingsUnavailable as exc:
+                dense_error = exc.message
+            except Exception as exc:  # noqa: BLE001
+                dense_error = exc.__class__.__name__
 
     ordered_ids: list[str] = []
     for chunk_id, _score in sparse:
@@ -94,7 +100,15 @@ def retrieve(
     )
     sparse_ranked = [chunk_id for chunk_id, _score in sparse if chunk_id in allowed]
     dense_ranked = [chunk_id for chunk_id in dense_ids if chunk_id in allowed]
-    rankings = [sparse_ranked] if dense_error else [dense_ranked, sparse_ranked]
+    if preference == "sparse" or dense_error is not None:
+        rankings = [sparse_ranked]
+        mode = "sparse"
+    elif preference == "dense":
+        rankings = [dense_ranked]
+        mode = "dense"
+    else:
+        rankings = [dense_ranked, sparse_ranked]
+        mode = "hybrid"
     fused = reciprocal_rank_fusion(rankings, k=settings.rrf_k)
     hits: list[RetrievalHit] = []
     query_set = set(query_terms)
@@ -111,11 +125,13 @@ def retrieve(
             instruction_override=bool(chunk.instruction_override),
         )
         hits.append(RetrievalHit(chunk=chunk, document=document, version=version, scored=scored))
-    mode = "sparse" if dense_error else "hybrid"
+    dense_stack_ok = dense_error is None if run_dense else (
+        ready and app_state.qdrant is not None
+    )
     return RetrievalResult(
         hits=hits,
         mode=mode,
-        dense_available=dense_error is None,
+        dense_available=dense_stack_ok,
         dense_error=dense_error,
         query_terms=query_terms,
     )

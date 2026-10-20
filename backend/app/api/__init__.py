@@ -153,6 +153,7 @@ async def query(request: Request, payload: QueryIn) -> QueryOut:
         conversation_id=payload.conversation_id,
         categories=payload.categories,
         audience=payload.audience,
+        retrieval_preference=payload.retrieval_preference,
     )
 
 

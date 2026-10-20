@@ -8,3 +8,4 @@
 {"id":"iguana","question":"What is the sabbatical policy for pet iguanas?","expect":"abstain","titles":[]}
 {"id":"pension","question":"What is the company pension matching percentage?","expect":"abstain","titles":[]}
 {"id":"parking","question":"Where is the executive parking garage located?","expect":"abstain","titles":[]}
+{"id":"vague-vibe","question":"What is the general vibe of working here?","expect":"ambiguous","titles":[]}

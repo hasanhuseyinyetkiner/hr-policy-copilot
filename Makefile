@@ -1,4 +1,4 @@
-.PHONY: models api web test lint
+.PHONY: models api web test lint eval
 
 models:
 	uv run --project backend python scripts/download_models.py
@@ -16,3 +16,6 @@ test:
 lint:
 	cd backend && uv run ruff check .
 	cd frontend && pnpm lint && pnpm typecheck
+
+eval:
+	cd backend && uv run python ../scripts/run_eval.py

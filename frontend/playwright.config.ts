@@ -4,7 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const frontendRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(frontendRoot, "..");
-const databaseFile = path.join(repoRoot, "data", "e2e.sqlite3");
+const runId = `${Date.now()}-${process.pid}`;
+const databaseFile = path.join(repoRoot, "data", `e2e-${runId}.sqlite3`);
+const qdrantPath = path.join(repoRoot, "data", `qdrant-e2e-${runId}`);
+const uploadDir = path.join(repoRoot, "data", `uploads-e2e-${runId}`);
 
 export default defineConfig({
   testDir: "./tests",
@@ -33,12 +36,12 @@ export default defineConfig({
         ALLOW_NETWORK_BIND: "false",
         DATABASE_URL: `sqlite:///${databaseFile.replaceAll("\\", "/")}`,
         QDRANT_MODE: "local",
-        QDRANT_PATH: path.join(repoRoot, "data", "qdrant-e2e"),
+        QDRANT_PATH: qdrantPath,
         EMBEDDING_BACKEND: "local",
         MODEL_DIR: path.join(repoRoot, "models", "all-MiniLM-L6-v2"),
         HF_HUB_OFFLINE: "1",
         DEMO_DATA_DIR: path.join(repoRoot, "data", "demo"),
-        UPLOAD_DIR: path.join(repoRoot, "data", "uploads-e2e"),
+        UPLOAD_DIR: uploadDir,
         SEED_ON_STARTUP: "true",
         QDRANT_WAIT: "false",
       },

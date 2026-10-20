@@ -97,6 +97,7 @@ export function LibraryPage() {
             className="mt-1 w-full text-sm"
             type="file"
             accept=".pdf,.docx,.txt,.html,.htm"
+            data-testid="upload-file"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             required
           />

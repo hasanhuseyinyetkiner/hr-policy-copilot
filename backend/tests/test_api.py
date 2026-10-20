@@ -1,7 +1,6 @@
 """API, versioning, retrieval, and security behavior."""
 
 import hashlib
-import json
 import zipfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -10,7 +9,6 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from qdrant_client.models import PointStruct
 from sqlalchemy import select
-from tests.conftest import make_settings
 
 from app.config import sqlite_url
 from app.demo_files import build_text_pdf
@@ -19,8 +17,7 @@ from app.models import Chunk, DocumentVersion, IngestionJob
 from app.reconcile import reconcile_index
 from app.services.jobs import reap_stale_jobs
 from app.services.vectors import list_point_ids
-
-REPO = Path(__file__).resolve().parents[2]
+from tests.conftest import make_settings
 
 
 def _upload(
@@ -427,44 +424,24 @@ def test_reconcile_removes_stale_points_and_restores_missing(client: TestClient)
 
 
 def test_eval_questions_and_metrics(seeded: TestClient) -> None:
-    rows = [
-        json.loads(line)
-        for line in (REPO / "data" / "eval" / "questions.jsonl")
-        .read_text(encoding="utf-8")
-        .splitlines()
-        if line.strip()
-    ]
-    reciprocal_ranks: list[float] = []
-    hits = 0
-    for row in rows:
-        body = _query(seeded, row["question"])
-        titles = [item["document_title"] for item in body["citations"]]
-        if row["expect"] == "abstain":
-            assert body["mode"] == "abstain", row["id"]
-            assert body["citations"] == []
-            continue
-        assert body["mode"] == "extractive", row
-        assert row["snippet"] in "\n".join(item["snippet"] for item in body["citations"])
-        assert set(titles) <= set(row["titles"])
-        if row["expect"] == "conflict":
-            assert body["contradictory"] is True
-            assert set(row["titles"]) <= set(titles)
-        rank = next(
-            (item["rank"] for item in body["citations"] if item["document_title"] in row["titles"]),
-            None,
-        )
-        assert rank is not None
-        reciprocal_ranks.append(1 / rank)
-        hits += 1
-        for citation in body["citations"]:
-            assert (
-                citation["snippet_sha256"]
-                == hashlib.sha256(citation["snippet"].encode()).hexdigest()
-            )
-    recall = hits / sum(1 for row in rows if row["expect"] != "abstain")
-    mrr = sum(reciprocal_ranks) / len(reciprocal_ranks)
-    assert recall == 1
-    assert mrr == 1
+    from app.eval_metrics import evaluate_all, load_eval_rows
+
+    rows = load_eval_rows()
+    assert any(row["expect"] == "ambiguous" for row in rows)
+    assert any(row["expect"] == "conflict" for row in rows)
+    assert any(row["expect"] == "abstain" for row in rows)
+    report = evaluate_all(seeded, rows, modes=("hybrid", "dense"))
+    hybrid = report["modes"]["hybrid"]
+    dense = report["modes"]["dense"]
+    assert hybrid["recall_at_k"] == 1.0
+    assert hybrid["mrr"] == 1.0
+    assert hybrid["citation_precision"] == 1.0
+    assert hybrid["citation_faithfulness"] == 1.0
+    assert hybrid["abstention_accuracy"] == 1.0
+    # Dense-only on the hash embedder may still recover gold titles via vectors.
+    assert dense["recall_at_k"] >= 0.5
+    assert dense["citation_faithfulness"] == 1.0
+    assert dense["abstention_accuracy"] == 1.0
 
 
 def test_overview_numbers_come_from_records(seeded: TestClient) -> None:
