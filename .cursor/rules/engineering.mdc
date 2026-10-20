@@ -1,0 +1,26 @@
+---
+description: Repository-wide engineering, delivery, testing and security rules for production-minded portfolio apps
+alwaysApply: true
+---
+
+# Engineering standards
+
+- Act as a senior software engineer, not a one-shot code generator. Implement code in the repository, never answer only with pseudocode.
+- First inspect the actual files, commands, tool versions and environment. Never pretend to have used tools or to have run tests.
+- Prefer a complete, small, independently usable vertical slice over broad placeholders. Implement phases incrementally.
+- Standard architecture: React + Vite + TypeScript frontend; FastAPI + typed Python backend; PostgreSQL; Docker Compose. Extend only when the project requires it.
+- Use an application/service/data-access split where helpful. Keep domain algorithms independent of API endpoints and UI components.
+- Pin dependencies with a reproducible lockfile. Verify current compatible versions before choosing them. Never fabricate package APIs.
+- Keep migrations, typed request/response DTOs, configurable settings, safe logging, /health and /ready checks, structured errors, and explicit input validation.
+- Protect uploaded files: size cap, extensions and MIME/magic validation where available, random internal filenames, no arbitrary path handling, quarantine or sandbox for untrusted input as needed.
+- Do not hardcode credentials or publish secrets, private data, `.env` values, credentials, logs, model caches, data dumps or uploaded documents.
+- Create realistic **synthetic** data with deterministic seeds; mark it as synthetic everywhere. Don't imply actual customer data, live users or industry certifications.
+- Use secure authentication/authorization before accepting real user data or enabling a multi-user deployment. A local single-user demo may be marked as demo-only; never imply it's a production-ready SaaS.
+- For sensitive HR use cases, provide human-review support, transparency, data deletion and sensible privacy defaults. Never implement automatic employment rejection or other consequential employee decisions in MVP.
+- Require unit and integration tests for domain logic and at least one UI smoke test. Test invalid/empty/boundary inputs and security-sensitive paths. Use Ruff + pytest for Python, ESLint + tsc + Vitest for frontend, Playwright for the core journey.
+- Make sure commands in README match actual scripts/files. Run test, lint, typecheck and build; report failures instead of claiming success.
+- Implement responsive and accessible UI: real information hierarchy, navigation, keyboard access, labels, loading/empty/error states and data provenance warnings.
+- Design for demonstration with one command or a short documented start process. Always support a functioning demo without paid API keys where technically reasonable.
+- Record decisions and honest limitations in `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/LIMITATIONS.md`.
+- Do not create remote repos, push commits, call paid APIs or deploy to external services without the owner's explicit authorization.
+- At the end of each phase, report: files changed, commands actually run, tests and results, blockers, remaining tasks, and next suggested phase.

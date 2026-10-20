@@ -1,0 +1,43 @@
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+playwright-report/
+test-results/
+
+# Data, uploads, model caches
+uploads/
+data/uploads/
+data/private/
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+models/
+.cache/
+qdrant_storage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.log

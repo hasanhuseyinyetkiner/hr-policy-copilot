@@ -1,0 +1,29 @@
+---
+description: High-quality GitHub repository README, docs and public portfolio presentation rules
+alwaysApply: true
+---
+
+# Repository documentation standards
+
+- README must be in **clear, professional English**, specific to the actual product. The goal is to let a stranger understand, run, evaluate, and trust the software in under five minutes.
+- Create root `README.md`, `docs/ARCHITECTURE.md`, `docs/DEMO.md`, `docs/SECURITY.md`, `docs/LIMITATIONS.md`, `docs/METRICS.md` (if applicable), `CONTRIBUTING.md`, `SECURITY.md`, `LICENSE` only after confirming licensing choice.
+- Recommended README order:
+  1. Project title + concise one-line value proposition.
+  2. Actual verified CI and license badges only (optional).
+  3. One authentic screenshot/GIF near top, if captured from the working app.
+  4. "Why it exists" (problem and target users).
+  5. Capabilities: shipped features vs clearly marked planned features.
+  6. Actual architecture and technology rationale; Mermaid diagram.
+  7. Quick start with exact verified commands and `.env.example`.
+  8. A 60-second demo workflow with sample input and expected output.
+  9. API endpoints or usage examples from implemented routes.
+  10. Domain method and evaluation metrics (what was measured, data, limitations).
+  11. Testing instructions and latest *verified* results.
+  12. Security, privacy, limitations and data provenance.
+  13. Documentation links, contribution guide, license, maintenance status.
+- Do not add dead links, fabricated reviews, fake coverage percentages, made-up performance values, placeholder live-demo links, fake screenshots or badges for nonexistent CI workflows.
+- Only add screenshots when authentic assets actually exist in `docs/screenshots`. Put alt text on each image.
+- Prefer a concise top section; detailed technical docs can live in `docs/` with links.
+- Never claim "production ready", "compliant", "bias free", "legally verified", or "99% accurate" without sufficient documented evidence.
+- Add GitHub About description (under GitHub character limits), suggested topics, pinned repo rationale and release instructions in `docs/GITHUB_METADATA.md`.
+- Cross-check every README claim against source files, scripts, tests and actual outputs before finalizing.
