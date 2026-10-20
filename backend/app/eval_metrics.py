@@ -11,7 +11,7 @@ Method (documented for README / EVAL.md):
   bytes (exact extractive quote).
 - Abstention accuracy: share of ``expect=abstain`` / ``expect=ambiguous``
   questions that correctly abstain.
-- Dense vs hybrid: same questions with ``retrieval_preference`` dense|hybrid.
+- Modes via ``retrieval_preference``: hybrid | dense | sparse.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -139,43 +140,124 @@ def evaluate_all(
     client: TestClient,
     rows: list[dict[str, Any]] | None = None,
     *,
-    modes: tuple[str, ...] = ("hybrid", "dense"),
+    modes: tuple[str, ...] = ("hybrid", "dense", "sparse"),
     k: int = K,
+    embedding_backend: str = "hash",
 ) -> dict[str, Any]:
     dataset = rows if rows is not None else load_eval_rows()
     by_mode = {
         mode: asdict(evaluate_mode(client, dataset, preference=mode, k=k)) for mode in modes
     }
+    backend_note = (
+        "Default runner uses the deterministic hash embedder (see scripts/run_eval.py)."
+        if embedding_backend == "hash"
+        else (
+            "This run used the local MiniLM embedder (`sentence-transformers/all-MiniLM-L6-v2`) "
+            "via embedding_backend=local (see scripts/run_eval.py --backend local)."
+        )
+    )
+    sample = next(iter(by_mode.values()), None)
     return {
         "k": k,
         "n_questions": len(dataset),
-        "embedding_backend": "hash",
+        "embedding_backend": embedding_backend,
+        "measured_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "corpus": "seeded synthetic Northwind People policies (data/demo)",
+        "question_set": "data/eval/questions.jsonl",
         "method": (
             "Recall@K / MRR / citation precision on seeded synthetic policies; "
             "faithfulness = sha256(snippet) match; abstention accuracy on "
-            "unanswerable/ambiguous items; dense vs hybrid via retrieval_preference. "
-            "Default runner uses the deterministic hash embedder (see scripts/run_eval.py)."
+            "unanswerable/ambiguous items; modes via retrieval_preference "
+            f"(hybrid|dense|sparse). {backend_note}"
         ),
         "modes": by_mode,
+        "breakdown": {
+            "answer_hits": sample["answer_hits"] if sample else 0,
+            "n_answerable": sample["n_answerable"] if sample else 0,
+            "abstain_correct": sample["abstain_correct"] if sample else 0,
+            "abstain_total": sample["abstain_total"] if sample else 0,
+        },
     }
 
 
 def format_markdown(report: dict[str, Any]) -> str:
+    """Render a durable results table for docs/EVAL.md or docs/EVAL_MINILM.md."""
     n = report.get("n_questions", "?")
     backend = report.get("embedding_backend", "unknown")
+    measured = report.get("measured_at")
+    is_hash = backend == "hash"
+    title = (
+        "# Evaluation results (hash fixture)"
+        if is_hash
+        else "# Evaluation results (local MiniLM)"
+    )
+    raw_name = "EVAL_RESULTS.json" if is_hash else "EVAL_RESULTS_MINILM.json"
+    other = (
+        "For the **separate** MiniLM-on-seed run (same n=11 labels, different embedder), "
+        "see [`EVAL_MINILM.md`](EVAL_MINILM.md)."
+        if is_hash
+        else "For the **hash fixture** table (deterministic embedder), see [`EVAL.md`](EVAL.md)."
+    )
+    caveat_row = (
+        (
+            "Deterministic **hash** embedder (unit-test stand-in)",
+            "Live `all-MiniLM-L6-v2` quality on held-out corpora",
+        )
+        if is_hash
+        else (
+            "Labeled synthetic MiniLM run on the demo seed",
+            "Held-out / production RAG leaderboard",
+        )
+    )
     lines = [
-        "# Evaluation results",
+        title,
         "",
         f"Measured on the seeded synthetic corpus (`data/eval/questions.jsonl`), "
         f"**n={n}** questions.",
-        f"Embedding backend for this run: `{backend}`. "
-        "Do not treat these as legal advice or a production MiniLM benchmark.",
-        "",
-        f"**Method:** {report['method']}",
-        "",
-        f"| Mode | Recall@{report['k']} | MRR | Citation precision | Faithfulness | Abstention accuracy |",
-        "| --- | --- | --- | --- | --- | --- |",
+        f"Embedding backend for this run: `{backend}`.",
     ]
+    if measured:
+        lines.append(f"Measured at (UTC): `{measured}`.")
+    lines.extend(
+        [
+            "",
+            "## What this table is (and is not)",
+            "",
+            "| This run | Not this run |",
+            "| --- | --- |",
+            "| Fixture / labeled validation on n=11 synthetic rows "
+            "| A claim that hybrid beats dense on real HR corpora |",
+            f"| {caveat_row[0]} | {caveat_row[1]} |",
+            "| Expected near-perfect scores on a tiny synthetic set "
+            "| Held-out production leaderboard |",
+            "",
+            f"{other} Narrative and gaps: [`EVALUATION.md`](EVALUATION.md).",
+            "",
+            "## Methodology (short)",
+            "",
+            "| Metric | Definition |",
+            "| --- | --- |",
+            "| Recall@4 | Gold title in top-4 citations (answerable/conflict) |",
+            "| MRR | Reciprocal rank of first gold title |",
+            "| Citation precision | Cited titles ⊆ gold titles (answerable) |",
+            "| Faithfulness | `sha256(citation.snippet)` matches stored hash |",
+            "| Abstention accuracy | Correct abstain on abstain/ambiguous |",
+            "",
+            "Modes via `retrieval_preference`: `hybrid` = BM25 + dense + RRF; "
+            "`dense` = dense-only; `sparse` = BM25-only.",
+            "",
+            "Implementation: `backend/app/eval_metrics.py`. "
+            "Runner: `scripts/run_eval.py`.",
+            "",
+            "## Results",
+            "",
+            (
+                f"| Mode | Recall@{report['k']} | MRR | Citation precision "
+                "| Faithfulness | Abstention accuracy |"
+            ),
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+    )
     for mode, metrics in report["modes"].items():
         lines.append(
             "| {mode} | {recall:.2f} | {mrr:.2f} | {prec:.2f} | {faith:.2f} | {abs_acc:.2f} |".format(
@@ -187,5 +269,51 @@ def format_markdown(report: dict[str, Any]) -> str:
                 abs_acc=metrics["abstention_accuracy"],
             )
         )
-    lines.append("")
+    sample = next(iter(report["modes"].values()), None)
+    if sample:
+        lines.append("")
+        lines.append(
+            f"Breakdown: {sample['n_answerable']} answerable/conflict items, "
+            f"{sample['abstain_total']} abstain+ambiguous; "
+            f"`answer_hits={sample['answer_hits']}`, "
+            f"`abstain_correct={sample['abstain_correct']}/{sample['abstain_total']}` "
+            f"for each mode. Raw JSON: [`{raw_name}`]({raw_name})."
+        )
+    lines.extend(
+        [
+            "",
+            "## Reproduce",
+            "",
+            "```powershell",
+            "cd backend",
+        ]
+    )
+    if is_hash:
+        lines.extend(
+            [
+                "uv run python ../scripts/run_eval.py",
+                "# equivalent: --backend hash --modes hybrid,dense,sparse",
+                "```",
+                "",
+                "MiniLM (writes separate files; does not overwrite this table):",
+                "",
+                "```powershell",
+                "cd backend",
+                "uv run python -m app.download_model   # if models/ missing",
+                "uv run python ../scripts/run_eval.py --backend local",
+                "```",
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "uv run python -m app.download_model   # if models/ missing",
+                "uv run python ../scripts/run_eval.py --backend local --modes hybrid,dense,sparse",
+                "```",
+                "",
+                "If the model directory is missing, the runner exits without inventing scores.",
+                "",
+            ]
+        )
     return "\n".join(lines)

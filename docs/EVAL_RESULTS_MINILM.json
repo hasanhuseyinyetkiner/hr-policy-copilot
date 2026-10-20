@@ -1,0 +1,48 @@
+{
+  "k": 4,
+  "n_questions": 11,
+  "embedding_backend": "local",
+  "measured_at": "2026-10-20T15:33:03Z",
+  "method": "Recall@K / MRR / citation precision on seeded synthetic policies; faithfulness = sha256(snippet) match; abstention accuracy on unanswerable/ambiguous items; modes via retrieval_preference (hybrid|dense|sparse). This run used the local MiniLM embedder (`sentence-transformers/all-MiniLM-L6-v2`) via embedding_backend=local (see scripts/run_eval.py --backend local).",
+  "modes": {
+    "hybrid": {
+      "mode": "hybrid",
+      "n_questions": 11,
+      "n_answerable": 7,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "citation_precision": 1.0,
+      "citation_faithfulness": 1.0,
+      "abstention_accuracy": 1.0,
+      "answer_hits": 7,
+      "abstain_correct": 4,
+      "abstain_total": 4
+    },
+    "dense": {
+      "mode": "dense",
+      "n_questions": 11,
+      "n_answerable": 7,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "citation_precision": 1.0,
+      "citation_faithfulness": 1.0,
+      "abstention_accuracy": 1.0,
+      "answer_hits": 7,
+      "abstain_correct": 4,
+      "abstain_total": 4
+    },
+    "sparse": {
+      "mode": "sparse",
+      "n_questions": 11,
+      "n_answerable": 7,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "citation_precision": 1.0,
+      "citation_faithfulness": 1.0,
+      "abstention_accuracy": 1.0,
+      "answer_hits": 7,
+      "abstain_correct": 4,
+      "abstain_total": 4
+    }
+  }
+}

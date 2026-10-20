@@ -1,12 +1,21 @@
-> **Binding amendments:** read [REVIEW_AMENDMENTS.md](REVIEW_AMENDMENTS.md) first. It overrides any conflicting text below.
+> **Historical build brief (not current product docs).**
+> This file is the original Cursor agent implementation prompt used to bootstrap the MVP.
+> It is retained for provenance. It may describe open-source packaging, LLM grounding, or
+> multi-user goals that are **roadmap or undecided**. For the shipped system, trust:
+> root [`README.md`](../README.md), [`ARCHITECTURE.md`](ARCHITECTURE.md),
+> [`REVIEW_AMENDMENTS.md`](REVIEW_AMENDMENTS.md) (binding), [`SECURITY.md`](SECURITY.md),
+> and [`RELEASE_READINESS.md`](RELEASE_READINESS.md).
+>
+> **Binding amendments:** [REVIEW_AMENDMENTS.md](REVIEW_AMENDMENTS.md) overrides any conflicting text below.
+> **License:** pending owner decision — do not treat “open-source” wording in this brief as a license grant.
 
-# CURSOR AGENT PROMPT — HR POLICY COPILOT
+# CURSOR AGENT PROMPT — HR POLICY COPILOT (historical)
 
 You are a principal full-stack engineer, retrieval engineer, privacy-conscious AI engineer, and open-source maintainer. **Implement a complete, usable, polished GitHub portfolio product** named **HR Policy Copilot** in this repository. Do not merely provide an outline, screenshots, pseudo-code, or incomplete scaffolding. Write and run real files and commands, implement in testable phases, and correct errors you discover. Check `.cursor/rules/*.mdc` if present. If the repo is empty, create everything needed.
 
 ## Product concept
 
-An open-source, evidence-first document assistant for HR teams. Users add approved HR policy files, ask questions in plain language, and get **verifiable answers with exact source citations**. They can tell internal policy apart from law, inspect source passages, and discover when the answer is missing, outdated, or contradictory. Not legal advice or a definitive compliance tool. No AI-invented HR rules.
+An evidence-first document assistant for HR teams (historical brief also said “open-source”; license remains pending). Users add approved HR policy files, ask questions in plain language, and get **verifiable answers with exact source citations**. They can tell internal policy apart from law, inspect source passages, and discover when the answer is missing, outdated, or contradictory. Not legal advice or a definitive compliance tool. No AI-invented HR rules.
 
 **Core differentiator:** traceable claims + source versioning + abstention + hybrid search + realistic offline demo without paid API keys. Build an actual product UI, not the default chatbot tutorial.
 
@@ -70,7 +79,7 @@ Create a premium **English** root `README.md`:
 - Engineering deep dive: dense/BM25/RRF, chunking, document versions, abstention and prompt injection model.
 - Evaluation table containing only numbers truly measured, data licensing, privacy and honest limitations.
 - Docs and examples links, accurate repo tree, API example, development/test commands, contributing guide, selected license.
-- `docs/GITHUB_METADATA.md`: suggested description `Source-grounded HR policy assistant with hybrid RAG, versioned documents and verifiable citations.`; GitHub topics: `rag`, `llm`, `fastapi`, `qdrant`, `semantic-search`, `hr-tech`, `typescript`, `open-source`.
+- `docs/GITHUB_METADATA.md`: suggested About description and topics (historical brief listed `open-source`; **omit** that topic until a license is chosen — see current `GITHUB_METADATA.md`).
 
 ## Implementation sequence / exit criteria
 
