@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="HR Policy Copilot: Ask HR policy questions. Get answers you can verify.">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B1020"/><stop offset="1" stop-color="#111827"/></linearGradient>
+<radialGradient id="glow" cx="0.8" cy="0.4" r="0.6"><stop offset="0" stop-color="#0D9488" stop-opacity="0.22"/><stop offset="1" stop-color="#0D9488" stop-opacity="0"/></radialGradient>
+<pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#1F2937" stroke-width="1" opacity="0.6"/></pattern>
+</defs>
+<rect width="1280" height="360" rx="24" fill="url(#bg)"/>
+<rect width="1280" height="360" rx="24" fill="url(#grid)" opacity="0.5"/>
+<rect width="1280" height="360" rx="24" fill="url(#glow)"/>
+<rect x="0.75" y="0.75" width="1278.5" height="358.5" rx="23.5" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+<rect x="80" y="62" width="44" height="6" rx="3" fill="#0D9488"/>
+<text x="80" y="128" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="60" font-weight="800" letter-spacing="-1.5" fill="#F8FAFC">HR Policy Copilot</text>
+<text x="80" y="186" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#94A3B8">Ask HR policy questions.</text><text x="80" y="222" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#94A3B8">Get answers you can verify.</text>
+<rect x="80" y="268" width="122" height="36" rx="18" fill="#0D9488" fill-opacity="0.12" stroke="#0D9488" stroke-opacity="0.45"/><text x="141.0" y="292" text-anchor="middle" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#5EEAD4">Hybrid RAG</text><rect x="214" y="268" width="192" height="36" rx="18" fill="#0D9488" fill-opacity="0.12" stroke="#0D9488" stroke-opacity="0.45"/><text x="310.0" y="292" text-anchor="middle" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#5EEAD4">Versioned sources</text><rect x="418" y="268" width="172" height="36" rx="18" fill="#0D9488" fill-opacity="0.12" stroke="#0D9488" stroke-opacity="0.45"/><text x="504.0" y="292" text-anchor="middle" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="600" fill="#5EEAD4">Exact citations</text>
+<rect x="880" y="100" width="230" height="250" rx="14" fill="#161E2E" stroke="#1F2937" stroke-width="2"/>
+<rect x="906" y="84" width="230" height="250" rx="14" fill="#161E2E" stroke="#1F2937" stroke-width="2"/>
+<rect x="932" y="70" width="230" height="250" rx="14" fill="#161E2E" stroke="#1F2937" stroke-width="2"/>
+<rect x="960" y="110" width="170" height="10" rx="5" fill="#1F2937" opacity="1"/>
+<rect x="960" y="136" width="140" height="10" rx="5" fill="#1F2937" opacity="1"/>
+<rect x="960" y="162" width="180" height="10" rx="5" fill="#1F2937" opacity="1"/>
+<rect x="960" y="188" width="120" height="10" rx="5" fill="#0D9488" opacity="0.9"/>
+<rect x="960" y="214" width="160" height="10" rx="5" fill="#1F2937" opacity="1"/>
+<rect x="960" y="240" width="100" height="10" rx="5" fill="#1F2937" opacity="1"/>
+<rect x="960" y="266" width="150" height="10" rx="5" fill="#1F2937" opacity="1"/>
+<rect x="952" y="178" width="190" height="26" rx="6" fill="none" stroke="#0D9488" stroke-width="2.5"/>
+<g transform="translate(1110 250)"><rect x="0" y="0" width="74" height="40" rx="20" fill="#0D9488"/><text x="37" y="27" text-anchor="middle" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">[1]</text></g>
+<path d="M1110 270 C1080 270 1075 220 1062 206" fill="none" stroke="#0D9488" stroke-width="2.5" stroke-dasharray="5 5"/>
+</svg>

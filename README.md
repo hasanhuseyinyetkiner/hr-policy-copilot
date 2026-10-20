@@ -1,18 +1,31 @@
-# HR Policy Copilot
+<a id="readme-top"></a>
 
-Ask HR policy questions. Get answers you can verify.
+<div align="center">
 
-Local demo with **hybrid retrieval** (BM25 + dense + RRF), versioned synthetic HR policies, and extractive citations. No paid API keys required.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+  <img alt="HR Policy Copilot — Ask HR policy questions. Get answers you can verify." src="docs/assets/banner-light.svg" width="100%">
+</picture>
 
-## Verified local run (Windows)
+**Evidence-first HR policy assistant.** Upload approved policies, ask questions, and get extractive answers with exact citations — offline by default, no paid API keys required.
+
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Limitations](#security-privacy-and-limitations)
+
+</div>
+
+## Quick start
+
+> [!NOTE]
+> Native path verified on Windows 11 with `uv` + `pnpm`. Docker Compose is present but verified in CI only (no Docker on the authoring machine).
 
 ```powershell
-# Terminal 1 — API (127.0.0.1:8101)
+# Backend (API http://127.0.0.1:8101)
 cd backend
 uv sync
+uv run python -m app.download_model   # first time only
 uv run python -m app
 
-# Terminal 2 — Web (127.0.0.1:5101)
+# Frontend (http://127.0.0.1:5101) — new terminal
 cd frontend
 pnpm install
 pnpm dev
@@ -24,14 +37,33 @@ pnpm dev
 | API docs | http://127.0.0.1:8101/docs |
 | Health | http://127.0.0.1:8101/health |
 
-Demo data seeds on startup (synthetic policies). First boot downloads/loads `all-MiniLM-L6-v2` from `models/` (already present after `scripts/download_models.py`).
+Demo policies seed automatically. Ask: *How many days of annual leave do employees get?* — you should see an extractive answer with citation `[1]` linking to the source passage.
 
-```powershell
-# Backend tests (verified)
-cd backend
-uv run pytest -q
+## How it works
+
+```mermaid
+flowchart LR
+  U[React UI] --> A[FastAPI]
+  A --> PG[(SQLite / PostgreSQL)]
+  A --> Q[(Qdrant local / server)]
+  A --> R[BM25 + dense + RRF]
+  R --> E[Extractive answer + citations]
 ```
 
-## Status
+PostgreSQL/SQLite is the source of truth for document versions; vector hits are post-filtered against current chunks. Hostile PDF/DOCX parsing runs under timeout. Embedding model: `all-MiniLM-L6-v2` (CPU torch).
 
-Backend + frontend MVP runnable. Docker Compose / PostgreSQL path is for CI only (no Docker on the authoring machine). License pending owner decision.
+## Testing
+
+```powershell
+cd backend; uv run pytest -q
+cd frontend; pnpm test; pnpm build
+```
+
+## Security, privacy and limitations
+
+> [!IMPORTANT]
+> Local demo · synthetic data. Loopback bind by default. Not legal advice. No multi-user auth in the MVP.
+
+License: pending owner decision.
+
+<p align="right"><a href="#readme-top">↑ back to top</a></p>
