@@ -1,0 +1,20 @@
+SYNTHETIC DOCUMENT — not a real policy and not legal advice.
+Company: Northwind People Ops (fictional).
+Title: Leave and Holidays Policy
+Revision: 1
+Effective date: 2025-04-01
+
+1. Purpose
+This policy explains paid time away from work for employees of the fictional company Northwind People Ops.
+
+2. Annual leave
+A full-time employee receives 25 days of annual leave each calendar year. Part-time employees receive a pro-rata amount of annual leave. Annual leave does not include public holidays.
+
+3. Public holidays
+Northwind observes eight synthetic public holidays: Founders Day, River Festival, Midsummer Break, Harvest Friday, Lantern Day, First Snow, Year Turn, and Atlas Day. These names are fictional.
+
+4. Sick leave
+An employee may take up to 10 days of paid sick leave each calendar year. A medical note is requested only after three consecutive sick days.
+
+5. Carryover
+Up to 5 unused annual leave days may carry into the next calendar year. Carried days expire on 31 March.

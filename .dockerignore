@@ -1,0 +1,16 @@
+.git
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+frontend/dist
+data/qdrant
+data/qdrant-e2e
+data/uploads
+data/uploads-e2e
+data/*.sqlite3
+models
+*.md
+!data/demo/**
+!docs/**

@@ -1,0 +1,17 @@
+SYNTHETIC DOCUMENT — not a real policy and not legal advice.
+Company: Northwind People Ops (fictional).
+Title: Performance Review Policy
+Revision: 1
+Effective date: 2025-01-10
+
+1. Purpose
+This policy describes the fictional review cycle. A rating is not a disciplinary action and not an employment decision by this demo.
+
+2. Cycle
+Formal performance reviews happen twice each year, in May and November.
+
+3. Ratings
+The rating scale is Exceeds, Meets, and Developing. Managers write the rating in the synthetic review form.
+
+4. Goals
+Each employee agrees three written goals with their manager at the start of the cycle.

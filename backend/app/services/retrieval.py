@@ -1,0 +1,147 @@
+"""Hybrid retrieval. Database rows are the source of truth for every hit."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.config import Settings
+from app.domain.bm25 import sparse_search
+from app.domain.evidence import ScoredChunk
+from app.domain.fusion import reciprocal_rank_fusion
+from app.domain.tokenize import tokenize, unique_tokens
+from app.models import Chunk, Document, DocumentVersion
+from app.services.embeddings import EmbeddingsUnavailable, embed_texts, model_status
+from app.services.vectors import search_points
+
+
+@dataclass(frozen=True)
+class RetrievalHit:
+    chunk: Chunk
+    document: Document
+    version: DocumentVersion
+    scored: ScoredChunk
+
+
+@dataclass(frozen=True)
+class RetrievalResult:
+    hits: list[RetrievalHit]
+    mode: str
+    dense_available: bool
+    dense_error: str | None
+    query_terms: list[str]
+
+
+def retrieve(
+    session: Session,
+    app_state,
+    question: str,
+    *,
+    categories: list[str] | None,
+    audience: str,
+) -> RetrievalResult:
+    settings: Settings = app_state.settings
+    query_terms = unique_tokens(question)
+    sparse = sparse_search(
+        session,
+        query_terms,
+        categories=categories,
+        audience=audience,
+        limit=settings.retrieval_candidate_limit,
+        k1=settings.bm25_k1,
+        b=settings.bm25_b,
+    )
+    sparse_scores = dict(sparse)
+    dense_scores: dict[str, float] = {}
+    dense_ids: list[str] = []
+    dense_error: str | None = None
+    ready, ready_detail = model_status(settings)
+    if not ready:
+        dense_error = ready_detail
+    elif app_state.qdrant is None:
+        dense_error = "qdrant_unavailable"
+    else:
+        try:
+            vector = embed_texts([question], settings)[0]
+            found = search_points(
+                app_state.qdrant,
+                settings,
+                vector,
+                settings.retrieval_candidate_limit,
+            )
+            for chunk_id, score in found:
+                dense_ids.append(chunk_id)
+                dense_scores[chunk_id] = score
+        except EmbeddingsUnavailable as exc:
+            dense_error = exc.message
+        except Exception as exc:  # noqa: BLE001
+            dense_error = exc.__class__.__name__
+
+    ordered_ids: list[str] = []
+    for chunk_id, _score in sparse:
+        if chunk_id not in ordered_ids:
+            ordered_ids.append(chunk_id)
+    for chunk_id in dense_ids:
+        if chunk_id not in ordered_ids:
+            ordered_ids.append(chunk_id)
+    allowed = post_filter_chunks(
+        session,
+        ordered_ids,
+        categories=categories,
+        audience=audience,
+    )
+    sparse_ranked = [chunk_id for chunk_id, _score in sparse if chunk_id in allowed]
+    dense_ranked = [chunk_id for chunk_id in dense_ids if chunk_id in allowed]
+    rankings = [sparse_ranked] if dense_error else [dense_ranked, sparse_ranked]
+    fused = reciprocal_rank_fusion(rankings, k=settings.rrf_k)
+    hits: list[RetrievalHit] = []
+    query_set = set(query_terms)
+    for chunk_id, rrf_score in fused:
+        chunk, document, version = allowed[chunk_id]
+        overlap = len(query_set.intersection(tokenize(chunk.text)))
+        scored = ScoredChunk(
+            chunk_id=chunk_id,
+            text=chunk.text,
+            overlap=overlap,
+            bm25=float(sparse_scores.get(chunk_id, 0.0)),
+            dense=dense_scores.get(chunk_id),
+            rrf=float(rrf_score),
+            instruction_override=bool(chunk.instruction_override),
+        )
+        hits.append(RetrievalHit(chunk=chunk, document=document, version=version, scored=scored))
+    mode = "sparse" if dense_error else "hybrid"
+    return RetrievalResult(
+        hits=hits,
+        mode=mode,
+        dense_available=dense_error is None,
+        dense_error=dense_error,
+        query_terms=query_terms,
+    )
+
+
+def post_filter_chunks(
+    session: Session,
+    chunk_ids: list[str],
+    *,
+    categories: list[str] | None,
+    audience: str,
+) -> dict[str, tuple[Chunk, Document, DocumentVersion]]:
+    """Drop any hit the database does not currently allow to be shown or cited."""
+    if not chunk_ids:
+        return {}
+    statement = (
+        select(Chunk, Document, DocumentVersion)
+        .join(Document, Document.id == Chunk.document_id)
+        .join(DocumentVersion, DocumentVersion.id == Chunk.document_version_id)
+        .where(Chunk.id.in_(chunk_ids))
+        .where(Chunk.is_current.is_(True))
+        .where(DocumentVersion.is_current.is_(True))
+        .where(Document.deleted_at.is_(None))
+        .where(Document.audience == audience)
+    )
+    if categories:
+        statement = statement.where(Document.category.in_(categories))
+    rows = session.execute(statement).all()
+    return {chunk.id: (chunk, document, version) for chunk, document, version in rows}

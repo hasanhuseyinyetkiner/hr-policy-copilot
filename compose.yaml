@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hr
+      POSTGRES_PASSWORD: hr
+      POSTGRES_DB: hrpolicy
+    ports:
+      - "127.0.0.1:5401:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr -d hrpolicy"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  qdrant:
+    image: qdrant/qdrant:v1.15
+    ports:
+      - "127.0.0.1:6301:6333"
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: demo
+      API_HOST: 0.0.0.0
+      API_PORT: "8101"
+      ALLOW_NETWORK_BIND: "true"
+      DATABASE_URL: postgresql+psycopg://hr:hr@db:5432/hrpolicy
+      QDRANT_MODE: server
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_WAIT: "true"
+      MODEL_DIR: /srv/models/all-MiniLM-L6-v2
+      DEMO_DATA_DIR: /srv/data/demo
+      UPLOAD_DIR: /srv/data/uploads
+      SEED_ON_STARTUP: "true"
+      HF_HUB_OFFLINE: "1"
+    ports:
+      - "127.0.0.1:8101:8101"
+    depends_on:
+      db:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:5101:80"
+    depends_on:
+      - api

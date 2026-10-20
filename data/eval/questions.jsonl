@@ -1,0 +1,10 @@
+{"id":"leave","question":"How many days of annual leave does a full-time employee receive?","expect":"answer","titles":["Leave and Holidays Policy"],"snippet":"25 days of annual leave"}
+{"id":"sick","question":"How many days of paid sick leave are available each calendar year?","expect":"answer","titles":["Leave and Holidays Policy"],"snippet":"10 days of paid sick leave"}
+{"id":"office","question":"How many in-office days per week are required?","expect":"conflict","titles":["Remote Work Policy","Field Role Remote Exception"],"snippet":"in-office days"}
+{"id":"training","question":"Within how many days must a new hire complete security awareness training?","expect":"answer","titles":["Onboarding Guide"],"snippet":"within 7 days"}
+{"id":"meals","question":"What is the meal reimbursement limit per day?","expect":"answer","titles":["Expense Reimbursement Policy"],"snippet":"45 synthetic credits"}
+{"id":"reviews","question":"When do formal performance reviews happen?","expect":"answer","titles":["Performance Review Policy"],"snippet":"May and November"}
+{"id":"notice","question":"How many days of written notice does the fictional handbook mention?","expect":"answer","titles":["Notice Periods Orientation Briefing"],"snippet":"20 days of written notice"}
+{"id":"iguana","question":"What is the sabbatical policy for pet iguanas?","expect":"abstain","titles":[]}
+{"id":"pension","question":"What is the company pension matching percentage?","expect":"abstain","titles":[]}
+{"id":"parking","question":"Where is the executive parking garage located?","expect":"abstain","titles":[]}

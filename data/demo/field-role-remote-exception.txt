@@ -1,0 +1,14 @@
+SYNTHETIC DOCUMENT — not a real policy and not legal advice.
+Company: Northwind People Ops (fictional).
+Title: Field Role Remote Exception
+Revision: 1
+Effective date: 2026-02-01
+
+1. Purpose
+This current exception applies only to the Field Engineer role at the fictional company Northwind People Ops.
+
+2. Field engineers
+Field engineers work 0 in-office days per week because their work sites are customer locations. This exception does not change the hybrid schedule for office-based roles.
+
+3. Reporting
+A field engineer records customer site visits in the synthetic time tool. The record is not a legal attendance register.

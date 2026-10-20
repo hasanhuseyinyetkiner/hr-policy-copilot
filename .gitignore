@@ -27,7 +27,10 @@ test-results/
 # Data, uploads, model caches
 uploads/
 data/uploads/
+data/uploads*/
+data/qdrant*/
 data/private/
+data/e2e*
 *.sqlite
 *.sqlite3
 *.db

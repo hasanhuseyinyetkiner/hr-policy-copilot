@@ -1,0 +1,17 @@
+SYNTHETIC DOCUMENT — not a real policy and not legal advice.
+Company: Northwind People Ops (fictional).
+Title: Expense Reimbursement Policy
+Revision: 1
+Effective date: 2025-06-01
+
+1. Purpose
+This policy explains how employees claim fictional business costs. Amounts are synthetic credits, not a real currency.
+
+2. Meals
+The meal reimbursement limit is 45 synthetic credits per day. Alcohol is not reimbursed.
+
+3. Travel
+Pre-approved train travel is reimbursed in full. Personal car travel is reimbursed at 0.30 synthetic credits per kilometer.
+
+4. Deadline
+Employees must submit an expense claim within 30 days of the spend. Late claims are declined by People Ops in this demo.

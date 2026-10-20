@@ -1,0 +1,17 @@
+SYNTHETIC DOCUMENT — not a real policy and not legal advice.
+Company: Northwind People Ops (fictional).
+Title: Remote Work Policy
+Revision: 2
+Effective date: 2026-01-15
+
+1. Purpose
+This current revision sets the hybrid schedule for office-based employees of the fictional company Northwind People Ops.
+
+2. Schedule
+Northwind uses a hybrid schedule for office-based roles. Core collaboration hours are 10:00 to 15:00 in the Europe/Berlin timezone.
+
+3. Location
+Employees must work 2 in-office days per week. The other three weekdays may be worked from home. This revision replaces the fully remote schedule in revision 1.
+
+4. Exceptions
+Role-specific exceptions are published in a separate current document and are not decided by this policy alone.

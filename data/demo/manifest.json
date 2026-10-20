@@ -1,0 +1,113 @@
+[
+  {
+    "slug": "leave",
+    "title": "Leave and Holidays Policy",
+    "category": "company_policy",
+    "source_label": "Synthetic — Northwind People Ops",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2025-04-01",
+        "filename": "leave-and-holidays.txt",
+        "format": "txt"
+      }
+    ]
+  },
+  {
+    "slug": "remote",
+    "title": "Remote Work Policy",
+    "category": "company_policy",
+    "source_label": "Synthetic — Northwind People Ops",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2024-02-01",
+        "filename": "remote-work-v1.txt",
+        "format": "txt"
+      },
+      {
+        "revision": 2,
+        "effective_date": "2026-01-15",
+        "filename": "remote-work-v2.txt",
+        "format": "pdf"
+      }
+    ]
+  },
+  {
+    "slug": "field-remote",
+    "title": "Field Role Remote Exception",
+    "category": "company_policy",
+    "source_label": "Synthetic — Northwind People Ops",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2026-02-01",
+        "filename": "field-role-remote-exception.txt",
+        "format": "txt"
+      }
+    ]
+  },
+  {
+    "slug": "expenses",
+    "title": "Expense Reimbursement Policy",
+    "category": "company_policy",
+    "source_label": "Synthetic — Northwind People Ops",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2025-06-01",
+        "filename": "expense-reimbursement.txt",
+        "format": "docx"
+      }
+    ]
+  },
+  {
+    "slug": "onboarding",
+    "title": "Onboarding Guide",
+    "category": "company_policy",
+    "source_label": "Synthetic — Northwind People Ops",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2025-03-01",
+        "filename": "onboarding.html",
+        "format": "html"
+      }
+    ]
+  },
+  {
+    "slug": "performance",
+    "title": "Performance Review Policy",
+    "category": "company_policy",
+    "source_label": "Synthetic — Northwind People Ops",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2025-01-10",
+        "filename": "performance-review.txt",
+        "format": "txt"
+      }
+    ]
+  },
+  {
+    "slug": "notice",
+    "title": "Notice Periods Orientation Briefing",
+    "category": "regulatory_briefing",
+    "source_label": "Synthetic — Northwind orientation desk (not a statute)",
+    "audience": "staff",
+    "versions": [
+      {
+        "revision": 1,
+        "effective_date": "2025-09-01",
+        "filename": "notice-briefing.txt",
+        "format": "txt"
+      }
+    ]
+  }
+]
