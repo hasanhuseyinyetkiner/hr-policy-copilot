@@ -1,3 +1,5 @@
+> **Binding amendments:** read [REVIEW_AMENDMENTS.md](REVIEW_AMENDMENTS.md) first. It overrides any conflicting text below.
+
 # CURSOR AGENT PROMPT — HR POLICY COPILOT
 
 You are a principal full-stack engineer, retrieval engineer, privacy-conscious AI engineer, and open-source maintainer. **Implement a complete, usable, polished GitHub portfolio product** named **HR Policy Copilot** in this repository. Do not merely provide an outline, screenshots, pseudo-code, or incomplete scaffolding. Write and run real files and commands, implement in testable phases, and correct errors you discover. Check `.cursor/rules/*.mdc` if present. If the repo is empty, create everything needed.
