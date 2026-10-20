@@ -88,7 +88,7 @@ cd backend
 uv run python ../scripts/run_eval.py
 ```
 
-Results are written to [`docs/EVAL.md`](docs/EVAL.md) / [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json). Measured 2026-10-20 with the hash embedder used in unit tests (not a production MiniLM benchmark):
+Results are written to [`docs/EVAL.md`](docs/EVAL.md) / [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json). Measured 2026-10-20 on **n=11** synthetic questions with the **hash** embedder used in unit tests (not a MiniLM production benchmark — perfect scores on this tiny fixture are expected):
 
 | Mode | Recall@4 | MRR | Citation precision | Faithfulness | Abstention accuracy |
 | --- | --- | --- | --- | --- | --- |
@@ -105,7 +105,7 @@ cd frontend; pnpm lint; pnpm typecheck; pnpm test; pnpm build
 cd frontend; pnpm e2e   # Playwright: seeded ask + upload→index→cite
 ```
 
-CI (GitHub Actions): backend Ruff + pytest (PostgreSQL service), frontend lint/tsc/vitest/build, `compose-smoke`.
+CI (GitHub Actions): backend Ruff + pytest (PostgreSQL service), frontend lint/tsc/vitest/build, `compose-smoke`. Check the Actions tab for the latest run status — do not treat this paragraph as a green badge.
 
 ## Repo layout
 

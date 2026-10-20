@@ -149,21 +149,27 @@ def evaluate_all(
     return {
         "k": k,
         "n_questions": len(dataset),
+        "embedding_backend": "hash",
         "method": (
             "Recall@K / MRR / citation precision on seeded synthetic policies; "
             "faithfulness = sha256(snippet) match; abstention accuracy on "
-            "unanswerable/ambiguous items; dense vs hybrid via retrieval_preference."
+            "unanswerable/ambiguous items; dense vs hybrid via retrieval_preference. "
+            "Default runner uses the deterministic hash embedder (see scripts/run_eval.py)."
         ),
         "modes": by_mode,
     }
 
 
 def format_markdown(report: dict[str, Any]) -> str:
+    n = report.get("n_questions", "?")
+    backend = report.get("embedding_backend", "unknown")
     lines = [
         "# Evaluation results",
         "",
-        "Measured on the seeded synthetic corpus (`data/eval/questions.jsonl`).",
-        "Do not treat these as legal or production benchmarks.",
+        f"Measured on the seeded synthetic corpus (`data/eval/questions.jsonl`), "
+        f"**n={n}** questions.",
+        f"Embedding backend for this run: `{backend}`. "
+        "Do not treat these as legal advice or a production MiniLM benchmark.",
         "",
         f"**Method:** {report['method']}",
         "",

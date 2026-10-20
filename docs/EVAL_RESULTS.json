@@ -1,7 +1,8 @@
 {
   "k": 4,
   "n_questions": 11,
-  "method": "Recall@K / MRR / citation precision on seeded synthetic policies; faithfulness = sha256(snippet) match; abstention accuracy on unanswerable/ambiguous items; dense vs hybrid via retrieval_preference.",
+  "embedding_backend": "hash",
+  "method": "Recall@K / MRR / citation precision on seeded synthetic policies; faithfulness = sha256(snippet) match; abstention accuracy on unanswerable/ambiguous items; dense vs hybrid via retrieval_preference. Default runner uses the deterministic hash embedder (see scripts/run_eval.py).",
   "modes": {
     "hybrid": {
       "mode": "hybrid",
