@@ -220,6 +220,56 @@ textarea {
   padding: 1rem;
 }
 
+.source-split {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(14rem, 16rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.source-nav a[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.source-reader {
+  min-height: 70vh;
+}
+
+.telemetry-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.telemetry-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 23, 0.35);
+  cursor: pointer;
+}
+
+.telemetry-drawer {
+  position: relative;
+  z-index: 1;
+  width: min(36rem, 100vw);
+  height: 100%;
+  overflow: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem 2rem;
+}
+
+@media (max-width: 860px) {
+  .source-split {
+    grid-template-columns: 1fr;
+  }
+}
+
 .menu-button {
   display: none;
 }

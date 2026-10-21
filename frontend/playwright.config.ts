@@ -27,7 +27,7 @@ export default defineConfig({
       cwd: path.join(repoRoot, "backend"),
       url: "http://127.0.0.1:8101/ready",
       timeout: 240_000,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       env: {
         ...process.env,
         APP_ENV: "demo",
@@ -51,7 +51,7 @@ export default defineConfig({
       cwd: frontendRoot,
       url: "http://127.0.0.1:5101",
       timeout: 120_000,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
   ],
 });

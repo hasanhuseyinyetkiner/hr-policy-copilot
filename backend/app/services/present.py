@@ -208,6 +208,7 @@ def _message_out(session: Session, message: Message) -> MessageOut:
         citations=load_message_citations(session, message.id),
         evidence=extras.evidence if extras else [],
         superseded=extras.superseded if extras else [],
+        evidence_thresholds=extras.evidence_thresholds if extras else None,
         created_at=message.created_at,
     )
 
@@ -243,10 +244,12 @@ def _serialize_many(session: Session, documents: list[Document]) -> list[Documen
             chosen = max(document_versions, key=lambda version: version.revision)
         category = categories.get(document.category)
         label = category.label if category is not None else document.category
+        policy_id = document.slug if document.slug and document.slug.startswith("POL-") else None
         outputs.append(
             DocumentOut(
                 id=document.id,
                 title=document.title,
+                policy_id=policy_id,
                 category=document.category,
                 category_label=label,
                 source_label=document.source_label,

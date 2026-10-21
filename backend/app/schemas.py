@@ -42,6 +42,7 @@ class CategoryOut(BaseModel):
 class DocumentOut(BaseModel):
     id: str
     title: str
+    policy_id: str | None = None
     category: str
     category_label: str
     source_label: str
@@ -152,6 +153,13 @@ class CitationOut(BaseModel):
     dense_score: float | None
 
 
+class EvidenceThresholdsOut(BaseModel):
+    min_overlap: int
+    min_bm25: float
+    min_cosine: float
+    max_passages: int
+
+
 class EvidenceOut(BaseModel):
     chunk_id: str
     document_id: str
@@ -166,6 +174,10 @@ class EvidenceOut(BaseModel):
     used: bool
     rejected_reason: str | None
     preview: str
+    clears_overlap: bool = False
+    clears_bm25: bool = False
+    clears_dense: bool = False
+    clears_abstention_gate: bool = False
 
 
 class SupersededHint(BaseModel):
@@ -193,6 +205,7 @@ class MessageOut(BaseModel):
     citations: list[CitationOut] = Field(default_factory=list)
     evidence: list[EvidenceOut] = Field(default_factory=list)
     superseded: list[SupersededHint] = Field(default_factory=list)
+    evidence_thresholds: EvidenceThresholdsOut | None = None
     created_at: datetime
 
 
@@ -227,3 +240,4 @@ class MessageExtras(BaseModel):
     abstention_reason: str | None = None
     evidence: list[EvidenceOut] = Field(default_factory=list)
     superseded: list[SupersededHint] = Field(default_factory=list)
+    evidence_thresholds: EvidenceThresholdsOut | None = None

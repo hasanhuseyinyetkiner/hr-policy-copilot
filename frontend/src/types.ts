@@ -8,6 +8,7 @@ export type Category = {
 export type DocumentRecord = {
   id: string;
   title: string;
+  policy_id: string | null;
   category: string;
   category_label: string;
   source_label: string;
@@ -125,6 +126,13 @@ export type Citation = {
   dense_score: number | null;
 };
 
+export type EvidenceThresholds = {
+  min_overlap: number;
+  min_bm25: number;
+  min_cosine: number;
+  max_passages: number;
+};
+
 export type Evidence = {
   chunk_id: string;
   document_id: string;
@@ -139,6 +147,10 @@ export type Evidence = {
   used: boolean;
   rejected_reason: string | null;
   preview: string;
+  clears_overlap: boolean;
+  clears_bm25: boolean;
+  clears_dense: boolean;
+  clears_abstention_gate: boolean;
 };
 
 export type SupersededHint = {
@@ -166,6 +178,7 @@ export type Message = {
   citations: Citation[];
   evidence: Evidence[];
   superseded: SupersededHint[];
+  evidence_thresholds: EvidenceThresholds | null;
   created_at: string;
 };
 

@@ -103,9 +103,12 @@ def test_seed_corpus_shapes_and_strips_html_script(seeded: TestClient) -> None:
     by_title = {item["title"]: item for item in documents}
     assert by_title["Remote Work Policy"]["original_filename"].endswith(".pdf")
     assert by_title["Remote Work Policy"]["current_revision"] == 2
+    assert by_title["Remote Work Policy"]["policy_id"] == "POL-SEC-02"
+    assert by_title["Leave and Holidays Policy"]["policy_id"] == "POL-SEC-01"
     assert by_title["Expense Reimbursement Policy"]["original_filename"].endswith(".docx")
     assert by_title["Onboarding Guide"]["original_filename"].endswith(".html")
     assert by_title["Notice Periods Orientation Briefing"]["category"] == "regulatory_briefing"
+    assert by_title["Notice Periods Orientation Briefing"]["policy_id"] == "POL-SEC-07"
     versions = seeded.get(f"/api/documents/{by_title['Remote Work Policy']['id']}/versions").json()
     assert any(item["revision"] == 1 and item["is_current"] is False for item in versions)
     joined = []
@@ -141,6 +144,55 @@ def test_extractive_citation_is_exact_and_unanswerable_abstains(seeded: TestClie
     assert abstained["abstention_reason"] == "below_threshold"
 
 
+def test_abstention_on_out_of_scope_question(seeded: TestClient) -> None:
+    """Out-of-corpus questions must abstain with telemetry and no citations."""
+    body = _query(seeded, "What is the company pension matching formula for lunar mining staff?")
+    assert body["mode"] == "abstain"
+    assert body["citations"] == []
+    assert body["abstention_reason"] == "below_threshold"
+    assert body["evidence_thresholds"] is not None
+    assert body["evidence_thresholds"]["min_overlap"] >= 1
+    assert body["evidence_thresholds"]["min_bm25"] > 0
+    assert "bm25_score" in body["evidence"][0] if body["evidence"] else True
+    for row in body["evidence"]:
+        assert "clears_abstention_gate" in row
+        assert row["used"] is False
+
+
+def test_superseded_version_is_not_cited(seeded: TestClient) -> None:
+    """Current answers must cite only current revisions; superseded text stays out of evidence."""
+    body = _query(seeded, "How many in-office days per week are required?")
+    titles = {item["document_title"] for item in body["citations"]}
+    assert "Remote Work Policy" in titles
+    remote = [item for item in body["citations"] if item["document_title"] == "Remote Work Policy"]
+    assert remote
+    assert all(item["revision"] == 2 for item in remote)
+    assert all("0 in-office days" not in item["snippet"] for item in remote)
+    assert all(item["revision"] >= 1 for item in body["citations"])
+    docs = seeded.get("/api/documents").json()
+    remote_doc = next(item for item in docs if item["title"] == "Remote Work Policy")
+    assert remote_doc["policy_id"] == "POL-SEC-02"
+    versions = seeded.get(f"/api/documents/{remote_doc['id']}/versions").json()
+    assert any(item["revision"] == 1 and item["is_current"] is False for item in versions)
+
+
+def test_citation_span_matches_chunk_sha(seeded: TestClient) -> None:
+    """Citation snippet must equal the stored chunk text and match snippet_sha256."""
+    body = _query(seeded, "How many days of annual leave does a full-time employee receive?")
+    assert body["mode"] == "extractive"
+    assert body["citations"]
+    for citation in body["citations"]:
+        digest = hashlib.sha256(citation["snippet"].encode("utf-8")).hexdigest()
+        assert citation["snippet_sha256"] == digest
+        source = seeded.get(
+            f"/api/documents/{citation['document_id']}/versions/{citation['document_version_id']}"
+        ).json()
+        chunk = next(item for item in source["chunks"] if item["id"] == citation["chunk_id"])
+        assert citation["snippet"] == chunk["text"]
+        assert citation["snippet_sha256"] == chunk["text_sha256"]
+        assert citation["snippet"] in chunk["text"]
+
+
 def test_conflict_quotes_both_current_sources_and_hides_superseded(seeded: TestClient) -> None:
     body = _query(seeded, "How many in-office days per week are required?")
     titles = {item["document_title"] for item in body["citations"]}
@@ -159,6 +211,8 @@ def test_conflict_quotes_both_current_sources_and_hides_superseded(seeded: TestC
         item["snippet"].startswith("Employees must work 2") or "2 in-office days" in item["snippet"]
         for item in remote
     )
+    assert body["evidence_thresholds"] is not None
+    assert any(row["bm25_score"] > 0 or (row["dense_score"] or 0) > 0 for row in body["evidence"])
 
 
 def test_citation_survives_replacement(seeded: TestClient) -> None:

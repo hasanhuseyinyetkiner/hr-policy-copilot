@@ -17,6 +17,7 @@ from app.parsing.uploads import sha256_text
 from app.schemas import (
     CitationOut,
     EvidenceOut,
+    EvidenceThresholdsOut,
     MessageExtras,
     QueryOut,
     SupersededHint,
@@ -109,6 +110,12 @@ def answer_question(
             content = preamble
             mode = "abstain"
         evidence = _evidence_rows(result.hits, {hit.chunk.id for hit in chosen_hits}, thresholds)
+        threshold_out = EvidenceThresholdsOut(
+            min_overlap=thresholds.min_overlap,
+            min_bm25=thresholds.min_bm25,
+            min_cosine=thresholds.min_cosine,
+            max_passages=thresholds.max_passages,
+        )
         message = Message(
             id=str(uuid4()),
             conversation_id=conversation.id,
@@ -125,6 +132,7 @@ def answer_question(
                 abstention_reason=abstention,
                 evidence=evidence,
                 superseded=superseded,
+                evidence_thresholds=threshold_out,
             ).model_dump_json(),
             created_at=utcnow(),
         )
@@ -148,6 +156,7 @@ def answer_question(
             citations=citations,
             evidence=evidence,
             superseded=superseded,
+            evidence_thresholds=threshold_out,
             created_at=message.created_at,
         )
     except Exception:
@@ -294,6 +303,9 @@ def _evidence_rows(
         else:
             reason = "not_in_top_passages"
         preview = hit.chunk.text[:180]
+        clears_overlap = hit.scored.overlap >= thresholds.min_overlap
+        clears_bm25 = hit.scored.bm25 >= thresholds.min_bm25
+        clears_dense = (hit.scored.dense or 0.0) >= thresholds.min_cosine
         rows.append(
             EvidenceOut(
                 chunk_id=hit.chunk.id,
@@ -309,6 +321,10 @@ def _evidence_rows(
                 used=used,
                 rejected_reason=reason,
                 preview=preview,
+                clears_overlap=clears_overlap,
+                clears_bm25=clears_bm25,
+                clears_dense=clears_dense,
+                clears_abstention_gate=passes_threshold(hit.scored, thresholds),
             )
         )
     return rows

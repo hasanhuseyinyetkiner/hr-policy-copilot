@@ -26,6 +26,7 @@ class DemoVersionSpec(BaseModel):
 
 class DemoDocumentSpec(BaseModel):
     slug: str
+    policy_id: str | None = None
     title: str
     category: str
     source_label: str

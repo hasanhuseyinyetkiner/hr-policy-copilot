@@ -126,6 +126,7 @@ export function LibraryPage() {
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="text-[var(--muted)]">
+                <th className="px-4 py-3 font-medium">Policy ID</th>
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Revision</th>
@@ -140,6 +141,9 @@ export function LibraryPage() {
             <tbody>
               {documents.data.map((document) => (
                 <tr key={document.id} className="border-t border-[var(--line)]" data-testid="library-row">
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--accent-ink)]">
+                    {document.policy_id ?? "—"}
+                  </td>
                   <td className="px-4 py-3">
                     <Link className="font-medium text-[var(--ink)]" to={`/documents/${document.id}`}>
                       {document.title}

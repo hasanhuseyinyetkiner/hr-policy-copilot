@@ -1,13 +1,16 @@
-import { AlertTriangle, CircleOff, Quote } from "lucide-react";
+import { AlertTriangle, CircleOff, Quote, X } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { formatDate, sourceHref } from "../api.ts";
-import type { Message } from "../types.ts";
+import type { Evidence, EvidenceThresholds, Message } from "../types.ts";
 
 export function AnswerPanel({ message }: { message: Message }) {
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
   if (message.role !== "assistant") {
     return null;
   }
   const abstained = message.mode === "abstain";
+  const hasTelemetry = message.evidence.length > 0;
   return (
     <article className="panel p-6 md:p-8" data-testid="answer" aria-live="polite">
       <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -16,6 +19,16 @@ export function AnswerPanel({ message }: { message: Message }) {
           <span className="rounded-full bg-[var(--paper)] px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
             {message.retrieval_mode} retrieval
           </span>
+        ) : null}
+        {hasTelemetry ? (
+          <button
+            type="button"
+            className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-3 py-1 text-xs font-medium text-[var(--accent-ink)]"
+            onClick={() => setTelemetryOpen(true)}
+            data-testid="open-telemetry"
+          >
+            Retrieval telemetry
+          </button>
         ) : null}
       </div>
       {message.preamble ? <p className="text-sm text-[var(--muted)]">{message.preamble}</p> : null}
@@ -64,39 +77,91 @@ export function AnswerPanel({ message }: { message: Message }) {
           <Link to={sourceHref({ ...hint, chunk_id: null })}>Read the superseded revision</Link>
         </p>
       ))}
-      {message.evidence.length > 0 ? (
-        <details className="mt-8">
-          <summary className="cursor-pointer text-sm font-medium">Retrieval inspector</summary>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="text-[var(--muted)]">
-                  <th className="py-2 pr-3 font-medium">Source</th>
-                  <th className="py-2 pr-3 font-medium">BM25</th>
-                  <th className="py-2 pr-3 font-medium">Dense</th>
-                  <th className="py-2 pr-3 font-medium">RRF</th>
-                  <th className="py-2 font-medium">Used</th>
-                </tr>
-              </thead>
-              <tbody>
-                {message.evidence.map((row) => (
-                  <tr key={row.chunk_id} className="border-t border-[var(--line)]">
-                    <td className="py-2 pr-3">
-                      {row.document_title} · Rev {row.revision}
-                      <div className="text-[var(--muted)]">{row.preview}</div>
-                    </td>
-                    <td className="py-2 pr-3">{row.bm25_score}</td>
-                    <td className="py-2 pr-3">{row.dense_score ?? "—"}</td>
-                    <td className="py-2 pr-3">{row.rrf_score}</td>
-                    <td className="py-2">{row.used ? "Yes" : row.rejected_reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
+      {telemetryOpen ? (
+        <TelemetryDrawer
+          evidence={message.evidence}
+          thresholds={message.evidence_thresholds}
+          onClose={() => setTelemetryOpen(false)}
+        />
       ) : null}
     </article>
+  );
+}
+
+function TelemetryDrawer({
+  evidence,
+  thresholds,
+  onClose,
+}: {
+  evidence: Evidence[];
+  thresholds: EvidenceThresholds | null;
+  onClose: () => void;
+}) {
+  return (
+    <div className="telemetry-overlay" role="dialog" aria-modal="true" aria-label="Retrieval telemetry">
+      <button type="button" className="telemetry-backdrop" aria-label="Close telemetry" onClick={onClose} />
+      <aside className="telemetry-drawer" data-testid="telemetry-drawer">
+        <header className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="m-0 text-xs font-medium uppercase tracking-[0.14em] text-[var(--accent-ink)]">
+              Retrieval telemetry
+            </p>
+            <h2 className="m-0 mt-1 text-lg font-semibold">Scores and abstention gate</h2>
+          </div>
+          <button
+            type="button"
+            className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)]"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </header>
+        {thresholds ? (
+          <p className="mb-4 text-sm text-[var(--muted)]" data-testid="abstention-thresholds">
+            Gate: overlap ≥ {thresholds.min_overlap}, BM25 ≥ {thresholds.min_bm25}, or dense ≥{" "}
+            {thresholds.min_cosine}. Max passages {thresholds.max_passages}.
+          </p>
+        ) : null}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr className="text-[var(--muted)]">
+                <th className="py-2 pr-3 font-medium">Source</th>
+                <th className="py-2 pr-3 font-medium">bm25_score</th>
+                <th className="py-2 pr-3 font-medium">dense_score</th>
+                <th className="py-2 pr-3 font-medium">rrf_score</th>
+                <th className="py-2 pr-3 font-medium">Gate</th>
+                <th className="py-2 font-medium">Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              {evidence.map((row) => (
+                <tr key={row.chunk_id} className="border-t border-[var(--line)] align-top">
+                  <td className="py-2 pr-3">
+                    {row.document_title} · Rev {row.revision}
+                    <div className="text-[var(--muted)]">{row.preview}</div>
+                    <div className="mt-1 text-xs text-[var(--muted)]">
+                      overlap {row.overlap}
+                      {row.clears_overlap ? " ✓" : " ✗"} · bm25
+                      {row.clears_bm25 ? " ✓" : " ✗"} · dense
+                      {row.clears_dense ? " ✓" : " ✗"}
+                    </div>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs">{row.bm25_score}</td>
+                  <td className="py-2 pr-3 font-mono text-xs">{row.dense_score ?? "—"}</td>
+                  <td className="py-2 pr-3 font-mono text-xs">{row.rrf_score}</td>
+                  <td className="py-2 pr-3">
+                    {row.clears_abstention_gate ? "pass" : "fail"}
+                  </td>
+                  <td className="py-2">{row.used ? "Yes" : row.rejected_reason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </div>
   );
 }
 

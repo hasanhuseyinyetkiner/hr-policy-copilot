@@ -1,9 +1,10 @@
 [
   {
-    "slug": "leave",
+    "slug": "POL-SEC-01",
+    "policy_id": "POL-SEC-01",
     "title": "Leave and Holidays Policy",
     "category": "company_policy",
-    "source_label": "Synthetic — Northwind People Ops",
+    "source_label": "POL-SEC-01 · Synthetic — Northwind People Ops",
     "audience": "staff",
     "versions": [
       {
@@ -15,10 +16,11 @@
     ]
   },
   {
-    "slug": "remote",
+    "slug": "POL-SEC-02",
+    "policy_id": "POL-SEC-02",
     "title": "Remote Work Policy",
     "category": "company_policy",
-    "source_label": "Synthetic — Northwind People Ops",
+    "source_label": "POL-SEC-02 · Synthetic — Northwind People Ops",
     "audience": "staff",
     "versions": [
       {
@@ -36,10 +38,11 @@
     ]
   },
   {
-    "slug": "field-remote",
+    "slug": "POL-SEC-03",
+    "policy_id": "POL-SEC-03",
     "title": "Field Role Remote Exception",
     "category": "company_policy",
-    "source_label": "Synthetic — Northwind People Ops",
+    "source_label": "POL-SEC-03 · Synthetic — Northwind People Ops",
     "audience": "staff",
     "versions": [
       {
@@ -51,10 +54,11 @@
     ]
   },
   {
-    "slug": "expenses",
+    "slug": "POL-SEC-04",
+    "policy_id": "POL-SEC-04",
     "title": "Expense Reimbursement Policy",
     "category": "company_policy",
-    "source_label": "Synthetic — Northwind People Ops",
+    "source_label": "POL-SEC-04 · Synthetic — Northwind People Ops",
     "audience": "staff",
     "versions": [
       {
@@ -66,10 +70,11 @@
     ]
   },
   {
-    "slug": "onboarding",
+    "slug": "POL-SEC-05",
+    "policy_id": "POL-SEC-05",
     "title": "Onboarding Guide",
     "category": "company_policy",
-    "source_label": "Synthetic — Northwind People Ops",
+    "source_label": "POL-SEC-05 · Synthetic — Northwind People Ops",
     "audience": "staff",
     "versions": [
       {
@@ -81,10 +86,11 @@
     ]
   },
   {
-    "slug": "performance",
+    "slug": "POL-SEC-06",
+    "policy_id": "POL-SEC-06",
     "title": "Performance Review Policy",
     "category": "company_policy",
-    "source_label": "Synthetic — Northwind People Ops",
+    "source_label": "POL-SEC-06 · Synthetic — Northwind People Ops",
     "audience": "staff",
     "versions": [
       {
@@ -96,10 +102,11 @@
     ]
   },
   {
-    "slug": "notice",
+    "slug": "POL-SEC-07",
+    "policy_id": "POL-SEC-07",
     "title": "Notice Periods Orientation Briefing",
     "category": "regulatory_briefing",
-    "source_label": "Synthetic — Northwind orientation desk (not a statute)",
+    "source_label": "POL-SEC-07 · Synthetic — Northwind orientation desk (not a statute)",
     "audience": "staff",
     "versions": [
       {

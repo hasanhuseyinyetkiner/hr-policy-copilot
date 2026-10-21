@@ -90,7 +90,8 @@ export function SettingsPage() {
           </button>
           <button
             type="button"
-            className="rounded-full border border-[var(--warn)] px-4 py-2 text-sm text-[var(--warn)]"
+            className="rounded-full border border-[var(--warn)] px-4 py-2 text-sm text-[var(--warn)] disabled:opacity-60"
+            disabled={wipe.isPending}
             onClick={() => {
               if (window.confirm("Delete all local demo documents and conversations?")) {
                 wipe.mutate();
