@@ -239,7 +239,6 @@ CI (GitHub Actions): backend Ruff + pytest against PostgreSQL, frontend lint / `
 | Competency | Implementation evidence |
 | --- | --- |
 | Retrieval system design | Hybrid BM25 + dense + RRF pipeline — [`retrieval.py`](backend/app/services/retrieval.py), [`fusion.py`](backend/app/domain/fusion.py) |
-| Data consistency / versioning | DB source of truth, soft supersede, citation snapshots — [`ENGINEERING_DECISIONS.md`](docs/ENGINEERING_DECISIONS.md) §§2–3 |
 | Trustworthy AI product boundaries | Extractive answers, evidence thresholds, abstention, conflict display — [`evidence.py`](backend/app/domain/evidence.py), [`answering.py`](backend/app/services/answering.py) |
 | Security-minded ingestion | Subprocess parse, zip-bomb / pathological PDF tests — [`sandbox.py`](backend/app/parsing/sandbox.py), [`hostile.py`](backend/app/parsing/hostile.py) |
 | Reliability & operability | Degraded `/ready`, job reaper, reconcile script, loopback bind — Scope & limitations below |
@@ -345,11 +344,9 @@ compose.yaml web + api + postgres + qdrant (CI compose-smoke)
 | Doc | Contents |
 | --- | --- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology, retrieval pipeline, API surface |
-| [`docs/ENGINEERING_DECISIONS.md`](docs/ENGINEERING_DECISIONS.md) | Long-form decision records |
 | [`docs/EVALUATION.md`](docs/EVALUATION.md) | Metrics method, hash vs MiniLM results |
 | [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json) | Hash fixture numbers |
 | [`docs/EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) | Measured MiniLM numbers |
-| [`docs/GITHUB_METADATA.md`](docs/GITHUB_METADATA.md) | Suggested GitHub About text and topics |
 | [`frontend/README.md`](frontend/README.md) | UI architecture, ports, screenshots, tests |
 | [`LICENSE`](LICENSE) | MIT |
 
