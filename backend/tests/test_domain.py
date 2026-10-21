@@ -51,9 +51,14 @@ def test_bm25_prefers_the_rare_term() -> None:
 
 
 def test_rrf_rewards_agreement() -> None:
+    from app.domain.fusion import rrf_list_contributions
+
     fused = reciprocal_rank_fusion([["a", "b"], ["b", "c"]], k=60)
     assert fused[0][0] == "b"
     assert fused[0][1] > fused[1][1]
+    parts = rrf_list_contributions([["a", "b"], ["b", "c"]], k=60)
+    assert parts["b"][0] > 0 and parts["b"][1] > 0
+    assert abs(sum(parts["b"]) - fused[0][1]) < 1e-9
 
 
 def test_chunking_keeps_section_and_page() -> None:

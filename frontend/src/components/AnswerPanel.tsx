@@ -2,7 +2,7 @@ import { AlertTriangle, CircleOff, Quote, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { formatDate, sourceHref } from "../api.ts";
-import type { Evidence, EvidenceThresholds, Message } from "../types.ts";
+import type { Evidence, EvidenceThresholds, Message, RetrievalTelemetry } from "../types.ts";
 
 export function AnswerPanel({ message }: { message: Message }) {
   const [telemetryOpen, setTelemetryOpen] = useState(false);
@@ -10,7 +10,7 @@ export function AnswerPanel({ message }: { message: Message }) {
     return null;
   }
   const abstained = message.mode === "abstain";
-  const hasTelemetry = message.evidence.length > 0;
+  const hasTelemetry = message.evidence.length > 0 || message.retrieval_telemetry != null;
   return (
     <article className="panel p-6 md:p-8" data-testid="answer" aria-live="polite">
       <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -81,6 +81,7 @@ export function AnswerPanel({ message }: { message: Message }) {
         <TelemetryDrawer
           evidence={message.evidence}
           thresholds={message.evidence_thresholds}
+          telemetry={message.retrieval_telemetry}
           onClose={() => setTelemetryOpen(false)}
         />
       ) : null}
@@ -91,10 +92,12 @@ export function AnswerPanel({ message }: { message: Message }) {
 function TelemetryDrawer({
   evidence,
   thresholds,
+  telemetry,
   onClose,
 }: {
   evidence: Evidence[];
   thresholds: EvidenceThresholds | null;
+  telemetry: RetrievalTelemetry | null;
   onClose: () => void;
 }) {
   return (
@@ -106,7 +109,7 @@ function TelemetryDrawer({
             <p className="m-0 text-xs font-medium uppercase tracking-[0.14em] text-[var(--accent-ink)]">
               Retrieval telemetry
             </p>
-            <h2 className="m-0 mt-1 text-lg font-semibold">Scores and abstention gate</h2>
+            <h2 className="m-0 mt-1 text-lg font-semibold">Scores, fusion, and gate</h2>
           </div>
           <button
             type="button"
@@ -117,6 +120,52 @@ function TelemetryDrawer({
             <X size={16} aria-hidden="true" />
           </button>
         </header>
+        {telemetry ? (
+          <dl
+            className="mb-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm md:grid-cols-3"
+            data-testid="retrieval-meta"
+          >
+            <div>
+              <dt className="text-[var(--muted)]">Backend mode</dt>
+              <dd className="m-0 font-medium">
+                {telemetry.mode} · {telemetry.embedding_backend}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Corpus version</dt>
+              <dd className="m-0 font-mono">{telemetry.corpus_version}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Latency</dt>
+              <dd className="m-0 font-mono">{telemetry.latency_ms} ms</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Candidates</dt>
+              <dd className="m-0 font-mono">
+                bm25 {telemetry.bm25_candidates} · dense {telemetry.dense_candidates} · fused{" "}
+                {telemetry.fused_candidates}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Filter rejected</dt>
+              <dd className="m-0 font-mono">{telemetry.filter_rejected}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Threshold decision</dt>
+              <dd className="m-0 font-medium">{telemetry.threshold_decision ?? "—"}</dd>
+            </div>
+          </dl>
+        ) : null}
+        {telemetry?.filter_rejections?.length ? (
+          <p className="mb-4 text-sm text-[var(--muted)]" data-testid="filter-rejections">
+            Post-filter drops:{" "}
+            {telemetry.filter_rejections
+              .slice(0, 6)
+              .map((item) => `${item.reason}`)
+              .join(", ")}
+            {telemetry.filter_rejections.length > 6 ? "…" : ""}
+          </p>
+        ) : null}
         {thresholds ? (
           <p className="mb-4 text-sm text-[var(--muted)]" data-testid="abstention-thresholds">
             Gate: overlap ≥ {thresholds.min_overlap}, BM25 ≥ {thresholds.min_bm25}, or dense ≥{" "}
@@ -128,9 +177,10 @@ function TelemetryDrawer({
             <thead>
               <tr className="text-[var(--muted)]">
                 <th className="py-2 pr-3 font-medium">Source</th>
-                <th className="py-2 pr-3 font-medium">bm25_score</th>
-                <th className="py-2 pr-3 font-medium">dense_score</th>
-                <th className="py-2 pr-3 font-medium">rrf_score</th>
+                <th className="py-2 pr-3 font-medium">bm25</th>
+                <th className="py-2 pr-3 font-medium">dense</th>
+                <th className="py-2 pr-3 font-medium">RRF parts</th>
+                <th className="py-2 pr-3 font-medium">rrf</th>
                 <th className="py-2 pr-3 font-medium">Gate</th>
                 <th className="py-2 font-medium">Used</th>
               </tr>
@@ -150,6 +200,9 @@ function TelemetryDrawer({
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs">{row.bm25_score}</td>
                   <td className="py-2 pr-3 font-mono text-xs">{row.dense_score ?? "—"}</td>
+                  <td className="py-2 pr-3 font-mono text-xs">
+                    b {row.bm25_rrf_contrib ?? 0} · d {row.dense_rrf_contrib ?? 0}
+                  </td>
                   <td className="py-2 pr-3 font-mono text-xs">{row.rrf_score}</td>
                   <td className="py-2 pr-3">
                     {row.clears_abstention_gate ? "pass" : "fail"}

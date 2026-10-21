@@ -170,6 +170,8 @@ class EvidenceOut(BaseModel):
     bm25_score: float
     dense_score: float | None
     rrf_score: float
+    bm25_rrf_contrib: float = 0.0
+    dense_rrf_contrib: float = 0.0
     overlap: int
     used: bool
     rejected_reason: str | None
@@ -178,6 +180,28 @@ class EvidenceOut(BaseModel):
     clears_bm25: bool = False
     clears_dense: bool = False
     clears_abstention_gate: bool = False
+
+
+class FilterRejectionOut(BaseModel):
+    chunk_id: str
+    reason: str
+
+
+class RetrievalTelemetryOut(BaseModel):
+    corpus_version: int
+    latency_ms: float
+    embedding_backend: str
+    preference: str
+    mode: Literal["hybrid", "sparse", "dense"]
+    dense_available: bool
+    dense_error: str | None = None
+    bm25_candidates: int
+    dense_candidates: int
+    fused_candidates: int
+    filter_rejected: int
+    filter_rejections: list[FilterRejectionOut] = Field(default_factory=list)
+    query_terms: list[str] = Field(default_factory=list)
+    threshold_decision: str | None = None
 
 
 class SupersededHint(BaseModel):
@@ -206,6 +230,7 @@ class MessageOut(BaseModel):
     evidence: list[EvidenceOut] = Field(default_factory=list)
     superseded: list[SupersededHint] = Field(default_factory=list)
     evidence_thresholds: EvidenceThresholdsOut | None = None
+    retrieval_telemetry: RetrievalTelemetryOut | None = None
     created_at: datetime
 
 
@@ -241,3 +266,4 @@ class MessageExtras(BaseModel):
     evidence: list[EvidenceOut] = Field(default_factory=list)
     superseded: list[SupersededHint] = Field(default_factory=list)
     evidence_thresholds: EvidenceThresholdsOut | None = None
+    retrieval_telemetry: RetrievalTelemetryOut | None = None

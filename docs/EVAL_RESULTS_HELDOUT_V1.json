@@ -1,0 +1,88 @@
+{
+  "k": 4,
+  "n_questions": 12,
+  "embedding_backend": "hash",
+  "measured_at": "2026-10-21T13:09:55Z",
+  "corpus": "seeded synthetic Northwind People policies (data/demo)",
+  "dataset_id": "heldout-v1",
+  "question_set": "data/eval/heldout/v1/questions.jsonl",
+  "held_out": true,
+  "leak_policy": "Held-out labels must not be used to tune evidence thresholds or retrieval params.",
+  "method": "Recall@K / MRR / citation precision on seeded synthetic policies; faithfulness = sha256(snippet) match; abstention accuracy on unanswerable/ambiguous/superseded-heldout items; modes via retrieval_preference (hybrid|dense|sparse). Default runner uses the deterministic hash embedder (see scripts/run_eval.py).",
+  "modes": {
+    "hybrid": {
+      "mode": "hybrid",
+      "n_questions": 12,
+      "n_answerable": 7,
+      "recall_at_k": 0.8571428571428571,
+      "mrr": 0.9285714285714286,
+      "citation_precision": 0.9285714285714286,
+      "citation_faithfulness": 1.0,
+      "abstention_accuracy": 0.6,
+      "answer_hits": 6,
+      "abstain_correct": 3,
+      "abstain_total": 5
+    },
+    "dense": {
+      "mode": "dense",
+      "n_questions": 12,
+      "n_answerable": 7,
+      "recall_at_k": 0.8571428571428571,
+      "mrr": 0.9285714285714286,
+      "citation_precision": 0.9285714285714286,
+      "citation_faithfulness": 1.0,
+      "abstention_accuracy": 0.6,
+      "answer_hits": 6,
+      "abstain_correct": 3,
+      "abstain_total": 5
+    },
+    "sparse": {
+      "mode": "sparse",
+      "n_questions": 12,
+      "n_answerable": 7,
+      "recall_at_k": 0.8571428571428571,
+      "mrr": 0.9285714285714286,
+      "citation_precision": 0.9285714285714286,
+      "citation_faithfulness": 1.0,
+      "abstention_accuracy": 0.6,
+      "answer_hits": 6,
+      "abstain_correct": 3,
+      "abstain_total": 5
+    }
+  },
+  "breakdown": {
+    "answer_hits": 6,
+    "n_answerable": 7,
+    "abstain_correct": 3,
+    "abstain_total": 5
+  },
+  "category_breakdown": {
+    "hybrid": {
+      "exact": {
+        "n": 2,
+        "correct": 2,
+        "accuracy": 1.0
+      },
+      "negation": {
+        "n": 2,
+        "correct": 2,
+        "accuracy": 1.0
+      },
+      "paraphrase": {
+        "n": 3,
+        "correct": 2,
+        "accuracy": 0.6666666666666666
+      },
+      "superseded": {
+        "n": 2,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      "unanswerable": {
+        "n": 3,
+        "correct": 3,
+        "accuracy": 1.0
+      }
+    }
+  }
+}

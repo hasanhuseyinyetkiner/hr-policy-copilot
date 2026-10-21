@@ -1,0 +1,81 @@
+{
+  "measured_at": "2026-10-21T13:11:10Z",
+  "embedding_backend": "local",
+  "preference": "hybrid",
+  "dataset": "data/eval/questions.jsonl",
+  "n": 11,
+  "warmup": 1,
+  "mean_ms": 58.81,
+  "median_ms": 46.98,
+  "p95_ms": 114.42,
+  "min_ms": 29.26,
+  "max_ms": 114.42,
+  "per_question": [
+    {
+      "id": "leave",
+      "latency_ms": 36.55,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "sick",
+      "latency_ms": 33.71,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "office",
+      "latency_ms": 89.23,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "training",
+      "latency_ms": 57.58,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "meals",
+      "latency_ms": 29.26,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "reviews",
+      "latency_ms": 42.86,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "notice",
+      "latency_ms": 114.42,
+      "mode": "hybrid",
+      "threshold_decision": "cite"
+    },
+    {
+      "id": "iguana",
+      "latency_ms": 97.31,
+      "mode": "hybrid",
+      "threshold_decision": "abstain_below_threshold"
+    },
+    {
+      "id": "pension",
+      "latency_ms": 58.99,
+      "mode": "hybrid",
+      "threshold_decision": "abstain_below_threshold"
+    },
+    {
+      "id": "parking",
+      "latency_ms": 46.98,
+      "mode": "hybrid",
+      "threshold_decision": "abstain_below_threshold"
+    },
+    {
+      "id": "vague-vibe",
+      "latency_ms": 39.97,
+      "mode": "hybrid",
+      "threshold_decision": "abstain_below_threshold"
+    }
+  ]
+}

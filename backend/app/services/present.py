@@ -209,6 +209,7 @@ def _message_out(session: Session, message: Message) -> MessageOut:
         evidence=extras.evidence if extras else [],
         superseded=extras.superseded if extras else [],
         evidence_thresholds=extras.evidence_thresholds if extras else None,
+        retrieval_telemetry=extras.retrieval_telemetry if extras else None,
         created_at=message.created_at,
     )
 

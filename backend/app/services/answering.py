@@ -18,11 +18,13 @@ from app.schemas import (
     CitationOut,
     EvidenceOut,
     EvidenceThresholdsOut,
+    FilterRejectionOut,
     MessageExtras,
     QueryOut,
+    RetrievalTelemetryOut,
     SupersededHint,
 )
-from app.services.retrieval import RetrievalHit, retrieve
+from app.services.retrieval import RetrievalHit, RetrievalTelemetry, retrieve
 
 EXTRACT_PREAMBLE = (
     "Quoted directly from indexed policy text. This is not a generated explanation "
@@ -116,6 +118,12 @@ def answer_question(
             min_cosine=thresholds.min_cosine,
             max_passages=thresholds.max_passages,
         )
+        threshold_decision = (
+            "cite"
+            if chosen_hits
+            else ("no_documents" if abstention == "no_documents" else "abstain_below_threshold")
+        )
+        telemetry = _telemetry_out(result.telemetry, threshold_decision=threshold_decision)
         message = Message(
             id=str(uuid4()),
             conversation_id=conversation.id,
@@ -133,6 +141,7 @@ def answer_question(
                 evidence=evidence,
                 superseded=superseded,
                 evidence_thresholds=threshold_out,
+                retrieval_telemetry=telemetry,
             ).model_dump_json(),
             created_at=utcnow(),
         )
@@ -157,6 +166,7 @@ def answer_question(
             evidence=evidence,
             superseded=superseded,
             evidence_thresholds=threshold_out,
+            retrieval_telemetry=telemetry,
             created_at=message.created_at,
         )
     except Exception:
@@ -317,6 +327,8 @@ def _evidence_rows(
                 bm25_score=_round(hit.scored.bm25),
                 dense_score=_round(hit.scored.dense) if hit.scored.dense is not None else None,
                 rrf_score=_round(hit.scored.rrf),
+                bm25_rrf_contrib=_round(hit.bm25_rrf_contrib),
+                dense_rrf_contrib=_round(hit.dense_rrf_contrib),
                 overlap=hit.scored.overlap,
                 used=used,
                 rejected_reason=reason,
@@ -328,6 +340,32 @@ def _evidence_rows(
             )
         )
     return rows
+
+
+def _telemetry_out(
+    telemetry: RetrievalTelemetry,
+    *,
+    threshold_decision: str,
+) -> RetrievalTelemetryOut:
+    return RetrievalTelemetryOut(
+        corpus_version=telemetry.corpus_version,
+        latency_ms=telemetry.latency_ms,
+        embedding_backend=telemetry.embedding_backend,
+        preference=telemetry.preference,
+        mode=telemetry.mode if telemetry.mode in {"hybrid", "sparse", "dense"} else "sparse",
+        dense_available=telemetry.dense_available,
+        dense_error=telemetry.dense_error,
+        bm25_candidates=telemetry.bm25_candidates,
+        dense_candidates=telemetry.dense_candidates,
+        fused_candidates=telemetry.fused_candidates,
+        filter_rejected=telemetry.filter_rejected,
+        filter_rejections=[
+            FilterRejectionOut(chunk_id=item.chunk_id, reason=item.reason)
+            for item in telemetry.filter_rejections[:12]
+        ],
+        query_terms=list(telemetry.query_terms),
+        threshold_decision=threshold_decision,
+    )
 
 
 def _superseded_hints(

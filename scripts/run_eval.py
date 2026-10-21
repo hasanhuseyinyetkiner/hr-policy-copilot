@@ -5,10 +5,14 @@ Usage (from repo root, with backend deps):
   cd backend && uv run python ../scripts/run_eval.py
   cd backend && uv run python ../scripts/run_eval.py --backend local
   cd backend && uv run python ../scripts/run_eval.py --backend hash --modes hybrid,dense,sparse
+  cd backend && uv run python ../scripts/run_eval.py --dataset heldout/v1
 
 Defaults write fixture (hash) results to docs/EVAL_RESULTS.json.
 MiniLM runs write docs/EVAL_RESULTS_MINILM.json — they never overwrite the hash fixture.
+Held-out runs write docs/EVAL_RESULTS_HELDOUT_V1.json (and _MINILM suffix when local).
 Narrative tables live in docs/EVALUATION.md.
+
+Held-out labels must NOT be used to tune retrieval thresholds or fusion params.
 """
 
 from __future__ import annotations
@@ -25,7 +29,12 @@ sys.path.insert(0, str(REPO / "backend"))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.config import Settings, sqlite_url  # noqa: E402
-from app.eval_metrics import evaluate_all, format_markdown  # noqa: E402
+from app.eval_metrics import (  # noqa: E402
+    evaluate_all,
+    format_markdown,
+    load_eval_rows,
+    resolve_eval_path,
+)
 from app.main import create_app  # noqa: E402
 
 
@@ -42,7 +51,25 @@ def parse_args() -> argparse.Namespace:
         default="hybrid,dense,sparse",
         help="Comma-separated retrieval_preference values (hybrid,dense,sparse).",
     )
+    parser.add_argument(
+        "--dataset",
+        default="seed",
+        help="seed (data/eval/questions.jsonl) or heldout/v1 (held-out, not for tuning).",
+    )
     return parser.parse_args()
+
+
+def _artifact_path(dataset_id: str, backend: str) -> Path:
+    out_dir = REPO / "docs"
+    if dataset_id.startswith("heldout"):
+        base = "EVAL_RESULTS_HELDOUT_V1"
+    else:
+        base = "EVAL_RESULTS"
+    if backend == "local":
+        if dataset_id.startswith("heldout"):
+            return out_dir / f"{base}_MINILM.json"
+        return out_dir / "EVAL_RESULTS_MINILM.json"
+    return out_dir / f"{base}.json"
 
 
 def main() -> int:
@@ -55,6 +82,16 @@ def main() -> int:
         if mode not in {"hybrid", "dense", "sparse"}:
             print(f"Invalid mode: {mode}", file=sys.stderr)
             return 2
+
+    try:
+        eval_path = resolve_eval_path(args.dataset)
+    except FileNotFoundError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    dataset_id = "heldout-v1" if "heldout" in str(eval_path).replace("\\", "/") else "seed"
+    question_set = str(eval_path.relative_to(REPO)).replace("\\", "/")
+    rows = load_eval_rows(eval_path)
 
     out_dir = REPO / "docs"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -91,18 +128,21 @@ def main() -> int:
             assert client.post("/api/demo/reset").status_code == 200
             report = evaluate_all(
                 client,
+                rows,
                 modes=modes,
                 embedding_backend=args.backend,
+                question_set=question_set,
+                dataset_id=dataset_id,
+                include_category_breakdown=dataset_id.startswith("heldout"),
             )
 
-    if args.backend == "hash":
-        json_path = out_dir / "EVAL_RESULTS.json"
-    else:
-        json_path = out_dir / "EVAL_RESULTS_MINILM.json"
-
+    json_path = _artifact_path(dataset_id, args.backend)
     json_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(format_markdown(report))
     print(f"Wrote {json_path.relative_to(REPO)} (update docs/EVALUATION.md tables if scores change)")
+    if report.get("category_breakdown"):
+        print("\nCategory breakdown (primary mode):")
+        print(json.dumps(report["category_breakdown"], indent=2))
     return 0
 
 

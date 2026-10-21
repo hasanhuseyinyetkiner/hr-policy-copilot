@@ -28,7 +28,21 @@ from fastapi.testclient import TestClient
 from app.config import REPO_ROOT
 
 DEFAULT_EVAL_PATH = REPO_ROOT / "data" / "eval" / "questions.jsonl"
+HELDOUT_V1_PATH = REPO_ROOT / "data" / "eval" / "heldout" / "v1" / "questions.jsonl"
 K = 4
+
+
+def resolve_eval_path(dataset: str) -> Path:
+    """Map dataset id to JSONL path. Held-out sets must stay separate from the seed fixture."""
+    key = dataset.strip().lower()
+    if key in {"seed", "fixture", "questions", "default"}:
+        return DEFAULT_EVAL_PATH
+    if key in {"heldout", "heldout/v1", "heldout-v1", "v1"}:
+        return HELDOUT_V1_PATH
+    candidate = REPO_ROOT / "data" / "eval" / dataset / "questions.jsonl"
+    if candidate.is_file():
+        return candidate
+    raise FileNotFoundError(f"Unknown eval dataset: {dataset}")
 
 
 @dataclass(frozen=True)
@@ -136,6 +150,42 @@ def evaluate_mode(
     )
 
 
+def category_breakdown(
+    client: TestClient,
+    rows: list[dict[str, Any]],
+    *,
+    preference: str = "hybrid",
+) -> dict[str, dict[str, Any]]:
+    """Per-category hit/miss counts for held-out reporting (does not change thresholds)."""
+    buckets: dict[str, dict[str, int]] = {}
+    for row in rows:
+        category = str(row.get("category") or row.get("expect") or "uncategorized")
+        bucket = buckets.setdefault(category, {"n": 0, "correct": 0})
+        bucket["n"] += 1
+        body = _query(client, row["question"], preference)
+        citations = body.get("citations") or []
+        gold = set(row.get("titles") or [])
+        expect = row["expect"]
+        if expect in {"abstain", "ambiguous"}:
+            ok = body.get("mode") == "abstain" and not citations
+        else:
+            titles = {item["document_title"] for item in citations}
+            ok = bool(gold & titles)
+            snippet = row.get("snippet") or ""
+            if snippet and not any(snippet in item.get("snippet", "") for item in citations):
+                ok = False
+        if ok:
+            bucket["correct"] += 1
+    return {
+        key: {
+            "n": value["n"],
+            "correct": value["correct"],
+            "accuracy": (value["correct"] / value["n"]) if value["n"] else 0.0,
+        }
+        for key, value in sorted(buckets.items())
+    }
+
+
 def evaluate_all(
     client: TestClient,
     rows: list[dict[str, Any]] | None = None,
@@ -143,6 +193,9 @@ def evaluate_all(
     modes: tuple[str, ...] = ("hybrid", "dense", "sparse"),
     k: int = K,
     embedding_backend: str = "hash",
+    question_set: str = "data/eval/questions.jsonl",
+    dataset_id: str = "seed",
+    include_category_breakdown: bool = False,
 ) -> dict[str, Any]:
     dataset = rows if rows is not None else load_eval_rows()
     by_mode = {
@@ -156,18 +209,26 @@ def evaluate_all(
             "via embedding_backend=local (see scripts/run_eval.py --backend local)."
         )
     )
+    heldout = dataset_id.startswith("heldout")
     sample = next(iter(by_mode.values()), None)
-    return {
+    report: dict[str, Any] = {
         "k": k,
         "n_questions": len(dataset),
         "embedding_backend": embedding_backend,
         "measured_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "corpus": "seeded synthetic Northwind People policies (data/demo)",
-        "question_set": "data/eval/questions.jsonl",
+        "dataset_id": dataset_id,
+        "question_set": question_set,
+        "held_out": heldout,
+        "leak_policy": (
+            "Held-out labels must not be used to tune evidence thresholds or retrieval params."
+            if heldout
+            else "Seed fixture may be used for wiring checks; not a production leaderboard."
+        ),
         "method": (
             "Recall@K / MRR / citation precision on seeded synthetic policies; "
             "faithfulness = sha256(snippet) match; abstention accuracy on "
-            "unanswerable/ambiguous items; modes via retrieval_preference "
+            "unanswerable/ambiguous/superseded-heldout items; modes via retrieval_preference "
             f"(hybrid|dense|sparse). {backend_note}"
         ),
         "modes": by_mode,
@@ -178,6 +239,12 @@ def evaluate_all(
             "abstain_total": sample["abstain_total"] if sample else 0,
         },
     }
+    if include_category_breakdown or heldout:
+        primary = modes[0] if modes else "hybrid"
+        report["category_breakdown"] = {
+            primary: category_breakdown(client, dataset, preference=primary)
+        }
+    return report
 
 
 def format_markdown(report: dict[str, Any]) -> str:
@@ -185,13 +252,28 @@ def format_markdown(report: dict[str, Any]) -> str:
     n = report.get("n_questions", "?")
     backend = report.get("embedding_backend", "unknown")
     measured = report.get("measured_at")
+    question_set = report.get("question_set", "data/eval/questions.jsonl")
+    dataset_id = report.get("dataset_id", "seed")
+    heldout = bool(report.get("held_out"))
     is_hash = backend == "hash"
-    title = (
-        "# Evaluation results (hash fixture)"
-        if is_hash
-        else "# Evaluation results (local MiniLM)"
-    )
-    raw_name = "EVAL_RESULTS.json" if is_hash else "EVAL_RESULTS_MINILM.json"
+    if heldout:
+        title = (
+            "# Held-out evaluation results (hash)"
+            if is_hash
+            else "# Held-out evaluation results (local MiniLM)"
+        )
+        raw_name = (
+            "EVAL_RESULTS_HELDOUT_V1.json"
+            if is_hash
+            else "EVAL_RESULTS_HELDOUT_V1_MINILM.json"
+        )
+    else:
+        title = (
+            "# Evaluation results (hash fixture)"
+            if is_hash
+            else "# Evaluation results (local MiniLM)"
+        )
+        raw_name = "EVAL_RESULTS.json" if is_hash else "EVAL_RESULTS_MINILM.json"
     other = (
         "Update [`EVALUATION.md`](EVALUATION.md) if these scores change."
     )
@@ -203,16 +285,19 @@ def format_markdown(report: dict[str, Any]) -> str:
         if is_hash
         else (
             "Labeled synthetic MiniLM run on the demo seed",
-            "Held-out / production RAG leaderboard",
+            "Production RAG leaderboard",
         )
     )
     lines = [
         title,
         "",
-        f"Measured on the seeded synthetic corpus (`data/eval/questions.jsonl`), "
-        f"**n={n}** questions.",
+        f"Dataset `{dataset_id}` (`{question_set}`), **n={n}** questions.",
         f"Embedding backend for this run: `{backend}`.",
     ]
+    if heldout:
+        lines.append(
+            "Held-out set: **do not** tune evidence thresholds or retrieval params from these scores."
+        )
     if measured:
         lines.append(f"Measured at (UTC): `{measured}`.")
     lines.extend(

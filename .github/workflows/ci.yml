@@ -5,6 +5,16 @@ on:
   pull_request:
 
 jobs:
+  markdown-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check local markdown links
+        run: python scripts/check_markdown_links.py
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -57,6 +67,44 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install backend
+        working-directory: backend
+        run: |
+          uv python pin 3.12
+          uv sync --frozen
+      - name: Install frontend
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Download embedding model
+        working-directory: backend
+        run: uv run python -m app.download_model
+      - name: Playwright critical journey
+        working-directory: frontend
+        run: pnpm test:e2e
+        env:
+          CI: "true"
 
   compose-smoke:
     runs-on: ubuntu-latest

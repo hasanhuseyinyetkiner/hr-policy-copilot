@@ -21,6 +21,7 @@ const abstain: Message = {
   evidence: [],
   superseded: [],
   evidence_thresholds: null,
+  retrieval_telemetry: null,
   created_at: "2026-01-01T00:00:00Z",
 };
 

@@ -1,0 +1,12 @@
+{"id":"h-exact-leave","category":"exact","question":"How many days of annual leave does a full-time employee receive each calendar year?","expect":"answer","titles":["Leave and Holidays Policy"],"snippet":"25 days of annual leave"}
+{"id":"h-exact-meals","category":"exact","question":"What is the meal reimbursement limit in synthetic credits per day?","expect":"answer","titles":["Expense Reimbursement Policy"],"snippet":"45 synthetic credits"}
+{"id":"h-para-pto","category":"paraphrase","question":"How much paid time off does a full-time staff member get annually under the leave policy?","expect":"answer","titles":["Leave and Holidays Policy"],"snippet":"25 days of annual leave"}
+{"id":"h-para-onboard","category":"paraphrase","question":"How soon after starting must a new employee finish the security awareness course?","expect":"answer","titles":["Onboarding Guide"],"snippet":"within 7 days"}
+{"id":"h-para-reviews","category":"paraphrase","question":"In which months does Northwind run formal performance reviews?","expect":"answer","titles":["Performance Review Policy"],"snippet":"May and November"}
+{"id":"h-neg-leave-not-40","category":"negation","question":"Does the leave policy say a full-time employee receives 40 days of annual leave?","expect":"answer","titles":["Leave and Holidays Policy"],"snippet":"25 days of annual leave"}
+{"id":"h-neg-remote-not-fully","category":"negation","question":"Does the current remote work policy allow a fully remote schedule with zero office days for office-based roles?","expect":"answer","titles":["Remote Work Policy"],"snippet":"2 in-office days"}
+{"id":"h-unans-iguana","category":"unanswerable","question":"What is the sabbatical entitlement for pet iguanas under Northwind People policies?","expect":"abstain","titles":[]}
+{"id":"h-unans-pension","category":"unanswerable","question":"What employer match percentage applies to the company pension plan?","expect":"abstain","titles":[]}
+{"id":"h-unans-parking","category":"unanswerable","question":"Which floor hosts the executive parking garage?","expect":"abstain","titles":[]}
+{"id":"h-super-rev1-office","category":"superseded","question":"According to Remote Work Policy revision 1 only, how many in-office days per week were required?","expect":"abstain","titles":[]}
+{"id":"h-super-core-hours","category":"superseded","question":"Which current policy still says no core collaboration hours are set by this revision for a fully remote schedule?","expect":"abstain","titles":[]}

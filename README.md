@@ -2,10 +2,9 @@
 
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
-  <img alt="HR Policy Copilot — Ask HR policy questions. Get answers you can verify." src="docs/assets/banner-light.svg" width="100%">
-</picture>
+<p align="center">
+  <img src="docs/assets/logo.png" alt="HR Policy Copilot logo — Ask HR policy questions. Get answers you can verify." width="560">
+</p>
 
 [![CI](https://github.com/hasanhuseyinyetkiner/hr-policy-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/hasanhuseyinyetkiner/hr-policy-copilot/actions/workflows/ci.yml)
 
@@ -19,6 +18,15 @@ Evidence-first assistant for approved HR policies: hybrid BM25 + dense retrieval
 
 ---
 
+## For HR and talent leaders
+
+| Question | What this tool gives you |
+| --- | --- |
+| **Which policy applies today?** | Answers come only from the current revision and quote the exact passage. |
+| **Do two policies disagree?** | Conflicts are surfaced side by side instead of being averaged into one confident answer. |
+| **What if the evidence is weak?** | The assistant abstains and says so. It does not guess. |
+| **What it is not** | Not legal advice and not a replacement for HR judgment. Synthetic Northwind policies only. |
+
 ## Executive overview
 
 | Dimension | Description |
@@ -28,7 +36,7 @@ Evidence-first assistant for approved HR policies: hybrid BM25 + dense retrieval
 | **Primary users** | HR ops / people partners evaluating policy tooling; engineers reviewing retrieval system design. Demo audience uses synthetic “Northwind People” policies. |
 | **Engineering challenge** | Keep sparse and dense indexes consistent with a versioned relational source of truth; refuse to cite stale or weak evidence; survive hostile uploads. |
 | **Architecture** | React + Vite UI · FastAPI · SQLite (native) / PostgreSQL (Compose) · Qdrant · MiniLM dense embeddings · DB-backed BM25 · RRF fusion |
-| **Validation** | 34 backend pytest cases; Vitest + Playwright smoke/screenshots; labeled eval on n=11 synthetic questions (hash fixture + MiniLM-on-seed — see Evaluation) |
+| **Validation** | 38 backend pytest cases; Vitest + Playwright ask/cite/abstain + a11y smoke; seed eval n=11 + held-out v1 n=12 (see Evaluation); retrieval latency baseline |
 | **Project status** | Local **MVP / demo**. Not a multi-user production SaaS. Licensed under MIT. |
 
 ---
@@ -82,7 +90,7 @@ With seed data (`SEED_ON_STARTUP=true` or **Settings → Reset demo**):
 1. **Leave** — *How many days of annual leave do employees get?* → quote containing **25 days of annual leave** from *Leave and Holidays Policy*, with View source.
 2. **Abstain** — iguana question above → Insufficient evidence.
 3. **Conflict** — in-office days → Sources disagree; app does not pick a winner.
-4. Optional — open **Retrieval telemetry** for `bm25_score` / `dense_score` / `rrf_score` and abstention thresholds per chunk.
+4. Optional — open **Retrieval telemetry** for BM25/dense/RRF contributions, filter rejections, corpus version, latency, backend mode, and abstention gate decisions.
 
 <details>
 <summary><strong>API sketch</strong> — seeded leave question</summary>
@@ -176,7 +184,7 @@ Also: degraded sparse-only mode when MiniLM/Qdrant is down (`/ready` → `degrad
 
 ## Evaluation and evidence
 
-Labeled questions: `data/eval/questions.jsonl` (**n=11** synthetic). Metrics: Recall@4, MRR, citation precision, snippet sha256 faithfulness, abstention accuracy. Modes: `hybrid` (BM25+dense+RRF), `dense`, `sparse` (BM25-only). Full method: [`docs/EVALUATION.md`](docs/EVALUATION.md).
+Seed fixture: `data/eval/questions.jsonl` (**n=11**). Held-out (separate, not for threshold tuning): `data/eval/heldout/v1/` (**n=12**; exact / paraphrase / negation / unanswerable / superseded). Metrics: Recall@4, MRR, citation precision, snippet sha256 faithfulness, abstention accuracy. Modes: `hybrid` (BM25+dense+RRF), `dense`, `sparse` (BM25-only). Full method: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ### Hash fixture (deterministic unit-test embedder)
 
@@ -212,25 +220,29 @@ uv run python ../scripts/run_eval.py --backend local
 
 Raw: [`docs/EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) · narrative: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
-**Still missing (not invented):** a held-out or multi-corpus hybrid-vs-dense study with human-rated answer quality.
+**Held-out v1 (hash, measured 2026-10-21):** hybrid Recall@4 **0.86**, abstention **0.60** (superseded 0/2). Raw: [`docs/EVAL_RESULTS_HELDOUT_V1.json`](docs/EVAL_RESULTS_HELDOUT_V1.json). Seed perfection does not transfer — do not invent higher scores.
+
+**Still missing (not invented):** multi-corpus / human-rated enterprise hybrid-vs-dense study.
 
 ### Automated tests
 
-Verified locally on 2026-10-20:
+Verified locally on 2026-10-21:
 
 ```text
 cd backend && uv run pytest -q
-# 34 passed  (22 api + 11 domain + 1 health-responsive)
+# 38 passed
 ```
 
 ```powershell
 cd backend; uv run ruff check .; uv run pytest -q
 cd frontend; pnpm lint; pnpm typecheck; pnpm test; pnpm build
-cd frontend; pnpm e2e          # Playwright: seeded ask + upload→index→cite
+cd frontend; pnpm test:e2e     # Playwright: ask/cite/abstain + a11y smoke
 cd frontend; pnpm screenshots  # writes docs/screenshots/*.png
+cd backend; uv run python ../scripts/run_eval.py --dataset heldout/v1
+cd backend; uv run python ../scripts/measure_latency.py --backend local
 ```
 
-CI (GitHub Actions): backend Ruff + pytest against PostgreSQL, frontend lint / `tsc` / Vitest / build, `compose-smoke`. Badge above tracks [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+CI (GitHub Actions): markdown local-link check, backend Ruff + pytest against PostgreSQL, frontend lint / `tsc` / Vitest / build, **Playwright e2e**, `compose-smoke`. Badge above tracks [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ---
 
@@ -298,11 +310,12 @@ Env vars: [`.env.example`](.env.example). Loopback bind by default (`ALLOW_NETWO
 backend/     FastAPI, SQLAlchemy, Alembic, retrieval, parsers, tests
 frontend/    React + Vite + TanStack Query + Playwright
 data/demo/   Synthetic policies + manifest.json
-data/eval/   Evaluation questions (questions.jsonl)
-scripts/     download_models, reconcile_index, run_eval
-docs/        Architecture, decisions, evaluation, security, screenshots
+data/eval/   Seed questions.jsonl + heldout/v1 (separate from tuning)
+scripts/     download_models, reconcile_index, run_eval, measure_latency
+docs/        Architecture, decisions, evaluation, performance baseline, screenshots
+SECURITY.md  Loopback-only demo boundaries
 compose.yaml web + api + postgres + qdrant (CI compose-smoke)
-.github/     ci.yml — Ruff/pytest (Postgres), frontend lint/tsc/vitest/build, compose-smoke
+.github/     ci.yml — markdown links, Ruff/pytest, frontend, Playwright e2e, compose-smoke
 ```
 
 </details>
@@ -330,7 +343,8 @@ compose.yaml web + api + postgres + qdrant (CI compose-smoke)
 | --- | --- |
 | **Shipped** | Hybrid retrieval: DB BM25 + MiniLM dense vectors, fused with RRF; DB post-filters every citeable hit |
 | **Shipped** | Document library for PDF / DOCX / TXT / HTML with hostile-upload sandbox |
-| **Shipped** | Ask UI with extractive quotes, citations, contradiction display, split-pane source viewer, Retrieval Telemetry |
+| **Shipped** | Ask UI with extractive quotes, citations, contradiction display, split-pane source viewer, Retrieval Telemetry (BM25/dense/RRF contribs, filter rejects, latency, corpus version) |
+| **Shipped** | Held-out eval v1 (versioned; separate from seed fixture) + measured retrieval latency baseline |
 | **Shipped** | Demo seed (POL-SEC-01…07 + obsolete remote-work revision) and reset / delete-all |
 | **Shipped** | Sparse-only fallback when embeddings or Qdrant are down |
 | **Shipped** | Citations survive document replacement |
@@ -344,9 +358,11 @@ compose.yaml web + api + postgres + qdrant (CI compose-smoke)
 | Doc | Contents |
 | --- | --- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology, retrieval pipeline, API surface |
+| [`docs/ENGINEERING_DECISIONS.md`](docs/ENGINEERING_DECISIONS.md) | Context → Options → Decision write-ups |
 | [`docs/EVALUATION.md`](docs/EVALUATION.md) | Metrics method, hash vs MiniLM results |
 | [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json) | Hash fixture numbers |
 | [`docs/EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) | Measured MiniLM numbers |
+| [`SECURITY.md`](SECURITY.md) | Loopback-only demo boundaries and threat model |
 | [`frontend/README.md`](frontend/README.md) | UI architecture, ports, screenshots, tests |
 | [`LICENSE`](LICENSE) | MIT |
 

@@ -1,0 +1,17 @@
+{
+  "dataset_id": "heldout-v1",
+  "version": "1.0.0",
+  "created": "2026-10-21",
+  "corpus": "seeded synthetic Northwind People policies (data/demo)",
+  "purpose": "Held-out labeled checks SEPARATE from data/eval/questions.jsonl (seed/tuning fixture).",
+  "leak_policy": "Do not tune evidence thresholds, BM25/RRF params, or retrieval_candidate_limit from this set. Fixture scores stay on questions.jsonl only.",
+  "categories": [
+    "exact",
+    "paraphrase",
+    "negation",
+    "unanswerable",
+    "superseded"
+  ],
+  "n_questions": 12,
+  "notes": "Questions intentionally avoid exact wording of the seed fixture rows where possible. Superseded items expect abstention from obsolete Rev 1 wording."
+}

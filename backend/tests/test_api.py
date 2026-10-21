@@ -477,6 +477,85 @@ def test_reconcile_removes_stale_points_and_restores_missing(client: TestClient)
     assert sample in repaired
 
 
+def test_reconcile_is_idempotent(client: TestClient) -> None:
+    uploaded = _upload(
+        client,
+        "idempotent.txt",
+        b"SYNTHETIC\n\n1. Idem\nThe idempotent color code is slate-blue.\n",
+        title="Idempotent Note",
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    first = reconcile_index(client.app.state)
+    second = reconcile_index(client.app.state)
+    assert first["error"] is None
+    assert second["error"] is None
+    assert second["deleted"] == 0
+    assert second["embedded"] == 0
+    assert second["current"] == first["current"]
+
+
+def test_deleted_document_hidden_even_with_stale_vectors(client: TestClient) -> None:
+    """Soft-delete must hide citations even if Qdrant still holds orphaned points."""
+    content = b"SYNTHETIC\n\n1. Lantern\nThe lantern color code is amber-ridge.\n"
+    uploaded = _upload(client, "lantern.txt", content, title="Lantern Note")
+    assert uploaded.status_code == 201, uploaded.text
+    found = _query(client, "What is the lantern color code?")
+    assert any("amber-ridge" in item["snippet"] for item in found["citations"])
+    chunk_id = found["citations"][0]["chunk_id"]
+    doc_id = uploaded.json()["id"]
+    removed = client.delete(f"/api/documents/{doc_id}")
+    assert removed.status_code == 204
+    # Re-inject the orphan vector to simulate a stale dense index after delete.
+    settings = client.app.state.settings
+    client.app.state.qdrant.upsert(
+        collection_name=settings.qdrant_collection,
+        points=[
+            PointStruct(
+                id=chunk_id,
+                vector=[0.02] * settings.embedding_dimensions,
+                payload={},
+            )
+        ],
+        wait=True,
+    )
+    assert chunk_id in list_point_ids(client.app.state.qdrant, settings)
+    hidden = _query(client, "What is the lantern color code?")
+    assert hidden["mode"] == "abstain"
+    assert hidden["citations"] == []
+    telem = hidden["retrieval_telemetry"]
+    assert telem is not None
+    # Dense may surface the orphan; DB post-filter must reject it.
+    if telem["dense_candidates"] > 0:
+        assert telem["filter_rejected"] >= 1
+        reasons = {item["reason"] for item in telem["filter_rejections"]}
+        assert reasons & {
+            "document_deleted",
+            "chunk_not_current",
+            "version_not_current",
+        }
+    repaired = reconcile_index(client.app.state)
+    assert repaired["deleted"] >= 1
+    assert chunk_id not in list_point_ids(client.app.state.qdrant, settings)
+
+
+def test_retrieval_telemetry_exposes_fusion_and_latency(seeded: TestClient) -> None:
+    body = _query(seeded, "How many days of annual leave does a full-time employee receive?")
+    telem = body["retrieval_telemetry"]
+    assert telem is not None
+    assert telem["mode"] in {"hybrid", "sparse", "dense"}
+    assert telem["embedding_backend"] in {"hash", "local"}
+    assert telem["corpus_version"] >= 1
+    assert telem["latency_ms"] >= 0
+    assert telem["bm25_candidates"] >= 1
+    assert telem["fused_candidates"] >= 1
+    assert telem["threshold_decision"] == "cite"
+    assert body["evidence"]
+    row = body["evidence"][0]
+    assert "bm25_rrf_contrib" in row
+    assert "dense_rrf_contrib" in row
+    assert row["rrf_score"] >= 0
+
+
 def test_eval_questions_and_metrics(seeded: TestClient) -> None:
     from app.eval_metrics import evaluate_all, load_eval_rows
 
@@ -496,6 +575,20 @@ def test_eval_questions_and_metrics(seeded: TestClient) -> None:
     assert dense["recall_at_k"] >= 0.5
     assert dense["citation_faithfulness"] == 1.0
     assert dense["abstention_accuracy"] == 1.0
+
+
+def test_heldout_dataset_is_separate_from_seed_fixture() -> None:
+    from app.eval_metrics import HELDOUT_V1_PATH, load_eval_rows, resolve_eval_path
+
+    seed = {row["question"] for row in load_eval_rows()}
+    heldout_path = resolve_eval_path("heldout/v1")
+    assert heldout_path == HELDOUT_V1_PATH
+    heldout = load_eval_rows(heldout_path)
+    assert len(heldout) >= 10
+    categories = {row["category"] for row in heldout}
+    assert {"exact", "paraphrase", "negation", "unanswerable", "superseded"} <= categories
+    overlap = seed.intersection({row["question"] for row in heldout})
+    assert not overlap, f"held-out questions must not duplicate seed fixture: {overlap}"
 
 
 def test_overview_numbers_come_from_records(seeded: TestClient) -> None:

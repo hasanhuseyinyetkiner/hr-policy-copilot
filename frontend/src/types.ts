@@ -79,7 +79,7 @@ export type Overview = {
     corpus_version: number;
     dense_ready: boolean;
     qdrant_ready: boolean;
-    mode: "hybrid" | "sparse";
+    mode: "hybrid" | "sparse" | "dense";
   };
   demo: boolean;
 };
@@ -143,6 +143,8 @@ export type Evidence = {
   bm25_score: number;
   dense_score: number | null;
   rrf_score: number;
+  bm25_rrf_contrib: number;
+  dense_rrf_contrib: number;
   overlap: number;
   used: boolean;
   rejected_reason: string | null;
@@ -151,6 +153,28 @@ export type Evidence = {
   clears_bm25: boolean;
   clears_dense: boolean;
   clears_abstention_gate: boolean;
+};
+
+export type FilterRejection = {
+  chunk_id: string;
+  reason: string;
+};
+
+export type RetrievalTelemetry = {
+  corpus_version: number;
+  latency_ms: number;
+  embedding_backend: string;
+  preference: string;
+  mode: "hybrid" | "sparse" | "dense";
+  dense_available: boolean;
+  dense_error: string | null;
+  bm25_candidates: number;
+  dense_candidates: number;
+  fused_candidates: number;
+  filter_rejected: number;
+  filter_rejections: FilterRejection[];
+  query_terms: string[];
+  threshold_decision: string | null;
 };
 
 export type SupersededHint = {
@@ -179,6 +203,7 @@ export type Message = {
   evidence: Evidence[];
   superseded: SupersededHint[];
   evidence_thresholds: EvidenceThresholds | null;
+  retrieval_telemetry: RetrievalTelemetry | null;
   created_at: string;
 };
 

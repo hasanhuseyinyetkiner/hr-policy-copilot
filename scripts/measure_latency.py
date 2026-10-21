@@ -1,0 +1,171 @@
+"""Measure retrieval latency on the eval question set (honest baseline).
+
+Usage:
+  cd backend && uv run python ../scripts/measure_latency.py
+  cd backend && uv run python ../scripts/measure_latency.py --backend local --dataset seed
+
+Writes docs/PERFORMANCE_BASELINE.md with measured numbers only (no invented values).
+Does not tune retrieval parameters from results.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import statistics
+import sys
+import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "backend"))
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.config import Settings, sqlite_url  # noqa: E402
+from app.eval_metrics import load_eval_rows, resolve_eval_path  # noqa: E402
+from app.main import create_app  # noqa: E402
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Measure retrieval latency baseline.")
+    parser.add_argument("--backend", choices=("hash", "local"), default="hash")
+    parser.add_argument("--dataset", default="seed")
+    parser.add_argument("--warmup", type=int, default=1)
+    parser.add_argument("--preference", default="hybrid", choices=("hybrid", "dense", "sparse"))
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    eval_path = resolve_eval_path(args.dataset)
+    rows = load_eval_rows(eval_path)
+    model_dir = REPO / "models" / "all-MiniLM-L6-v2"
+    if args.backend == "local" and not model_dir.is_dir():
+        print(f"Model missing: {model_dir}", file=sys.stderr)
+        return 1
+
+    latencies: list[float] = []
+    per_question: list[dict[str, object]] = []
+
+    with tempfile.TemporaryDirectory(prefix="hr-latency-") as tmp:
+        tmp_path = Path(tmp)
+        settings = Settings(
+            app_env="demo",
+            api_host="127.0.0.1",
+            allow_network_bind=False,
+            database_url=sqlite_url(tmp_path / "latency.sqlite3"),
+            qdrant_mode="local",
+            qdrant_path=str(tmp_path / "qdrant"),
+            embedding_backend=args.backend,
+            model_dir=str(model_dir if args.backend == "local" else tmp_path / "missing-model"),
+            demo_data_dir=str(REPO / "data" / "demo"),
+            upload_dir=str(tmp_path / "uploads"),
+            seed_on_startup=False,
+            qdrant_wait=False,
+            hf_hub_offline=True,
+        )
+        application = create_app(settings)
+        with TestClient(application) as client:
+            assert client.post("/api/demo/reset").status_code == 200
+            warmup_q = rows[0]["question"] if rows else "warmup"
+            for _ in range(max(0, args.warmup)):
+                client.post(
+                    "/api/query",
+                    json={"question": warmup_q, "retrieval_preference": args.preference},
+                )
+            for row in rows:
+                response = client.post(
+                    "/api/query",
+                    json={
+                        "question": row["question"],
+                        "retrieval_preference": args.preference,
+                    },
+                )
+                assert response.status_code == 200, response.text
+                body = response.json()
+                telem = body.get("retrieval_telemetry") or {}
+                ms = float(telem.get("latency_ms") or 0.0)
+                latencies.append(ms)
+                per_question.append(
+                    {
+                        "id": row.get("id"),
+                        "latency_ms": ms,
+                        "mode": body.get("retrieval_mode"),
+                        "threshold_decision": telem.get("threshold_decision"),
+                    }
+                )
+
+    if not latencies:
+        print("No latency samples collected.", file=sys.stderr)
+        return 1
+
+    measured_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    summary = {
+        "measured_at": measured_at,
+        "embedding_backend": args.backend,
+        "preference": args.preference,
+        "dataset": str(eval_path.relative_to(REPO)).replace("\\", "/"),
+        "n": len(latencies),
+        "warmup": args.warmup,
+        "mean_ms": round(statistics.mean(latencies), 2),
+        "median_ms": round(statistics.median(latencies), 2),
+        "p95_ms": round(sorted(latencies)[max(0, int(round(0.95 * (len(latencies) - 1))))], 2),
+        "min_ms": round(min(latencies), 2),
+        "max_ms": round(max(latencies), 2),
+        "per_question": per_question,
+    }
+
+    docs = REPO / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    raw_path = docs / "PERFORMANCE_BASELINE.json"
+    raw_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+
+    md = f"""# Performance baseline — retrieval latency
+
+Measured values only. Do not invent numbers. Regenerated by
+`scripts/measure_latency.py`.
+
+## Methodology
+
+1. Ephemeral SQLite + local Qdrant via `TestClient` (same seed path as eval).
+2. `POST /api/demo/reset` loads the synthetic `data/demo` corpus.
+3. `{args.warmup}` warmup query (excluded from stats).
+4. One timed query per row in `{summary["dataset"]}` with
+   `retrieval_preference={args.preference}`.
+5. Latency is **server-side retrieval** from `retrieval_telemetry.latency_ms`
+   (BM25 + dense + RRF + post-filter), not full HTTP client RTT and not UI paint.
+6. Embedding backend for this run: `{args.backend}`.
+7. Host notes: Windows TestClient process; Docker not required. Numbers are
+   machine-specific and not a SLA claim.
+
+## Results
+
+Measured at (UTC): `{measured_at}`
+
+| Metric | Value |
+| --- | --- |
+| n questions | {summary["n"]} |
+| mean | {summary["mean_ms"]} ms |
+| median | {summary["median_ms"]} ms |
+| p95 | {summary["p95_ms"]} ms |
+| min | {summary["min_ms"]} ms |
+| max | {summary["max_ms"]} ms |
+
+Raw JSON: [`PERFORMANCE_BASELINE.json`](PERFORMANCE_BASELINE.json)
+
+## What this is not
+
+- Not end-to-end browser latency.
+- Not a production load test.
+- Not used to tune evidence thresholds (held-out / seed labels stay separate from param search).
+"""
+    (docs / "PERFORMANCE_BASELINE.md").write_text(md, encoding="utf-8")
+    print(md)
+    print(f"Wrote {raw_path.relative_to(REPO)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
