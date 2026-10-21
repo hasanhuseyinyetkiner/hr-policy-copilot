@@ -1,6 +1,6 @@
 # Engineering decisions — HR Policy Copilot
 
-Long-form Context → Options → Decision → Trade-offs → Validation for the choices that define this system. Binding product constraints live in [`REVIEW_AMENDMENTS.md`](REVIEW_AMENDMENTS.md). Architecture overview: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Long-form Context → Options → Decision → Trade-offs → Validation for the choices that define this system. Architecture overview: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
@@ -30,7 +30,7 @@ Default path is **hybrid**: DB-backed BM25 candidates + Qdrant dense candidates 
 
 - Unit: `test_rrf_rewards_agreement`, BM25 preference tests in `tests/test_domain.py`.
 - Integration: conflict / leave / abstain flows in `tests/test_api.py`.
-- Fixture eval (hash embedder): `docs/EVAL.md`. MiniLM on same n=11 seed: `docs/EVAL_MINILM.md`. Neither is a held-out production benchmark.
+- Fixture eval (hash embedder): `docs/EVALUATION.md` / `docs/EVAL_RESULTS.json`. MiniLM: `docs/EVAL_RESULTS_MINILM.json`. Neither is a held-out production benchmark.
 
 ---
 
@@ -48,7 +48,7 @@ Vector stores and in-memory rankers can return stale IDs after replace/delete. C
 
 ### Decision
 
-**PostgreSQL/SQLite is authoritative** ([HR-1](REVIEW_AMENDMENTS.md)). `post_filter_chunks` requires `Chunk.is_current`, `DocumentVersion.is_current`, non-deleted document, and audience (plus optional category). Fault-injection test commits the DB supersede then fails before vector delete; superseded chunks must not appear.
+**PostgreSQL/SQLite is authoritative** (HR-1). `post_filter_chunks` requires `Chunk.is_current`, `DocumentVersion.is_current`, non-deleted document, and audience (plus optional category). Fault-injection test commits the DB supersede then fails before vector delete; superseded chunks must not appear.
 
 ### Trade-offs
 
@@ -77,7 +77,7 @@ Policies revise. Conversations must remain auditable: “what did we show when w
 
 ### Decision
 
-Option 3 ([HR-4](REVIEW_AMENDMENTS.md)). Ingest soft-deletes prior versions/chunks, removes their vectors, keeps citation rows intact. UI can open the superseded revision from hints when relevant.
+Option 3 (HR-4). Ingest soft-deletes prior versions/chunks, removes their vectors, keeps citation rows intact. UI can open the superseded revision from hints when relevant.
 
 ### Trade-offs
 
@@ -135,7 +135,7 @@ Policy libraries accept PDF/DOCX/HTML/TXT. Parsers are a classic attack surface 
 
 ### Decision
 
-Option 2 ([HR-3](REVIEW_AMENDMENTS.md), `parsing/sandbox.py`, `parsing/hostile.py`). Heavy work off the asyncio event loop (`run_in_threadpool`); `/health` must stay responsive during ingest.
+Option 2 (HR-3, `parsing/sandbox.py`, `parsing/hostile.py`). Heavy work off the asyncio event loop (`run_in_threadpool`); `/health` must stay responsive during ingest.
 
 ### Trade-offs
 
@@ -160,7 +160,7 @@ MiniLM and Qdrant are optional operationally: laptops without the model cache, C
 
 1. Hard-fail all queries without dense.
 2. Silent sparse fallback.
-3. **`/ready` degraded + sparse-only retrieval + visible UI notice** ([HR-5](REVIEW_AMENDMENTS.md)).
+3. **`/ready` degraded + sparse-only retrieval + visible UI notice** (HR-5).
 
 ### Decision
 
@@ -169,7 +169,7 @@ Option 3. Local Qdrant path mode for single-process native dev; Compose uses the
 ### Trade-offs
 
 - Degraded answers may miss paraphrases — disclosed in UI.
-- Hash embedder in tests/eval is **fixture-only**; quote MiniLM only from `docs/EVAL_MINILM.md` / `--backend local` runs.
+- Hash embedder in tests/eval is **fixture-only**; quote MiniLM only from `docs/EVALUATION.md` / `--backend local` runs.
 
 ### Validation
 

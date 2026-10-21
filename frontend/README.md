@@ -89,6 +89,6 @@ CI runs lint, `tsc`, Vitest, and build (see [`.github/workflows/ci.yml`](../.git
 
 ## Related docs
 
-- Root [README](../README.md) — product overview and quick start
+- Root [README](../README.md) — product overview, scope, limitations
 - [Architecture](../docs/ARCHITECTURE.md) — end-to-end topology
-- [Security](../docs/SECURITY.md) — loopback, audience ≠ authz, demo limits
+- [Evaluation](../docs/EVALUATION.md) — labeled retrieval metrics

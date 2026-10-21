@@ -6,9 +6,9 @@ Usage (from repo root, with backend deps):
   cd backend && uv run python ../scripts/run_eval.py --backend local
   cd backend && uv run python ../scripts/run_eval.py --backend hash --modes hybrid,dense,sparse
 
-Defaults write fixture (hash) results to docs/EVAL_RESULTS.json and docs/EVAL.md.
-MiniLM runs write docs/EVAL_RESULTS_MINILM.json and docs/EVAL_MINILM.md —
-they never overwrite the hash fixture table.
+Defaults write fixture (hash) results to docs/EVAL_RESULTS.json.
+MiniLM runs write docs/EVAL_RESULTS_MINILM.json — they never overwrite the hash fixture.
+Narrative tables live in docs/EVALUATION.md.
 """
 
 from __future__ import annotations
@@ -97,15 +97,12 @@ def main() -> int:
 
     if args.backend == "hash":
         json_path = out_dir / "EVAL_RESULTS.json"
-        md_path = out_dir / "EVAL.md"
     else:
         json_path = out_dir / "EVAL_RESULTS_MINILM.json"
-        md_path = out_dir / "EVAL_MINILM.md"
 
     json_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    md_path.write_text(format_markdown(report), encoding="utf-8")
     print(format_markdown(report))
-    print(f"Wrote {json_path.relative_to(REPO)} and {md_path.relative_to(REPO)}")
+    print(f"Wrote {json_path.relative_to(REPO)} (update docs/EVALUATION.md tables if scores change)")
     return 0
 
 

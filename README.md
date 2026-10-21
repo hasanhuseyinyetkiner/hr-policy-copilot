@@ -28,8 +28,8 @@ Evidence-first assistant for approved HR policies: hybrid BM25 + dense retrieval
 | **Primary users** | HR ops / people partners evaluating policy tooling; engineers reviewing retrieval system design. Demo audience uses synthetic “Northwind People” policies. |
 | **Engineering challenge** | Keep sparse and dense indexes consistent with a versioned relational source of truth; refuse to cite stale or weak evidence; survive hostile uploads. |
 | **Architecture** | React + Vite UI · FastAPI · SQLite (native) / PostgreSQL (Compose) · Qdrant · MiniLM dense embeddings · DB-backed BM25 · RRF fusion |
-| **Validation** | 31 backend pytest cases; Vitest + Playwright smoke/screenshots; labeled eval on n=11 synthetic questions (hash fixture + MiniLM-on-seed — see Evaluation) |
-| **Project status** | Local **MVP / demo**. Not a multi-user production SaaS. License pending owner decision. |
+| **Validation** | 34 backend pytest cases; Vitest + Playwright smoke/screenshots; labeled eval on n=11 synthetic questions (hash fixture + MiniLM-on-seed — see Evaluation) |
+| **Project status** | Local **MVP / demo**. Not a multi-user production SaaS. Licensed under MIT. |
 
 ---
 
@@ -82,7 +82,7 @@ With seed data (`SEED_ON_STARTUP=true` or **Settings → Reset demo**):
 1. **Leave** — *How many days of annual leave do employees get?* → quote containing **25 days of annual leave** from *Leave and Holidays Policy*, with View source.
 2. **Abstain** — iguana question above → Insufficient evidence.
 3. **Conflict** — in-office days → Sources disagree; app does not pick a winner.
-4. Optional — open Retrieval inspector for BM25 / dense / RRF breakdown on a cited answer.
+4. Optional — open **Retrieval telemetry** for `bm25_score` / `dense_score` / `rrf_score` and abstention thresholds per chunk.
 
 <details>
 <summary><strong>API sketch</strong> — seeded leave question</summary>
@@ -193,7 +193,7 @@ uv run python ../scripts/run_eval.py
 | dense | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
 | sparse | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
 
-Raw: [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json) · table: [`docs/EVAL.md`](docs/EVAL.md).
+Raw: [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json) · narrative: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 ### Local MiniLM-on-seed (demo embedder)
 
@@ -210,7 +210,7 @@ uv run python ../scripts/run_eval.py --backend local
 | dense | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
 | sparse | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
 
-Raw: [`docs/EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) · table: [`docs/EVAL_MINILM.md`](docs/EVAL_MINILM.md).
+Raw: [`docs/EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) · narrative: [`docs/EVALUATION.md`](docs/EVALUATION.md).
 
 **Still missing (not invented):** a held-out or multi-corpus hybrid-vs-dense study with human-rated answer quality.
 
@@ -220,7 +220,7 @@ Verified locally on 2026-10-20:
 
 ```text
 cd backend && uv run pytest -q
-# 31 passed  (19 api + 11 domain + 1 health-responsive)
+# 34 passed  (22 api + 11 domain + 1 health-responsive)
 ```
 
 ```powershell
@@ -242,7 +242,7 @@ CI (GitHub Actions): backend Ruff + pytest against PostgreSQL, frontend lint / `
 | Data consistency / versioning | DB source of truth, soft supersede, citation snapshots — [`ENGINEERING_DECISIONS.md`](docs/ENGINEERING_DECISIONS.md) §§2–3 |
 | Trustworthy AI product boundaries | Extractive answers, evidence thresholds, abstention, conflict display — [`evidence.py`](backend/app/domain/evidence.py), [`answering.py`](backend/app/services/answering.py) |
 | Security-minded ingestion | Subprocess parse, zip-bomb / pathological PDF tests — [`sandbox.py`](backend/app/parsing/sandbox.py), [`hostile.py`](backend/app/parsing/hostile.py) |
-| Reliability & operability | Degraded `/ready`, job reaper, reconcile script, loopback bind — [`SECURITY.md`](docs/SECURITY.md) |
+| Reliability & operability | Degraded `/ready`, job reaper, reconcile script, loopback bind — Scope & limitations below |
 | Verification | pytest + Playwright + labeled hash + MiniLM-on-seed eval — [`EVALUATION.md`](docs/EVALUATION.md) |
 | Technical communication | Architecture, ADRs-style decisions, honest limitations in `docs/` |
 
@@ -318,12 +318,12 @@ compose.yaml web + api + postgres + qdrant (CI compose-smoke)
 | Topic | Stance |
 | --- | --- |
 | AuthN/AuthZ | None in MVP — do not expose beyond loopback |
-| Real employee data | Do not upload; demo corpus is synthetic |
+| Network | Uvicorn defaults to `127.0.0.1`; non-loopback requires `ALLOW_NETWORK_BIND=true` |
+| Real employee data | Do not upload; demo corpus is synthetic (POL-SEC-01…07) |
 | Parsing threats | Subprocess + caps + zip-bomb / pathological PDF rejects |
+| Answer integrity | Extractive quotes only; evidence thresholds force abstention; citations store snippet + sha256 |
 | Employment decisions | Not implemented; human review required for any consequential use |
-| License | Pending owner decision (no `LICENSE` file yet) |
-
-Full write-up: [`docs/SECURITY.md`](docs/SECURITY.md).
+| License | MIT — see [`LICENSE`](LICENSE) |
 
 ### Feature status
 
@@ -331,13 +331,12 @@ Full write-up: [`docs/SECURITY.md`](docs/SECURITY.md).
 | --- | --- |
 | **Shipped** | Hybrid retrieval: DB BM25 + MiniLM dense vectors, fused with RRF; DB post-filters every citeable hit |
 | **Shipped** | Document library for PDF / DOCX / TXT / HTML with hostile-upload sandbox |
-| **Shipped** | Ask UI with extractive quotes, citations, contradiction display, source viewer, version history |
-| **Shipped** | Demo seed (≥5 synthetic policies + obsolete remote-work revision) and reset / delete-all |
+| **Shipped** | Ask UI with extractive quotes, citations, contradiction display, split-pane source viewer, Retrieval Telemetry |
+| **Shipped** | Demo seed (POL-SEC-01…07 + obsolete remote-work revision) and reset / delete-all |
 | **Shipped** | Sparse-only fallback when embeddings or Qdrant are down |
 | **Shipped** | Citations survive document replacement |
 | **Roadmap** | Optional Ollama / cloud LLM grounding (not wired) |
 | **Roadmap** | Multi-user authentication |
-| **Roadmap** | License choice |
 
 ---
 
@@ -347,14 +346,11 @@ Full write-up: [`docs/SECURITY.md`](docs/SECURITY.md).
 | --- | --- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology, retrieval pipeline, API surface |
 | [`docs/ENGINEERING_DECISIONS.md`](docs/ENGINEERING_DECISIONS.md) | Long-form decision records |
-| [`docs/EVALUATION.md`](docs/EVALUATION.md) | Metrics method, hash vs MiniLM, hybrid/dense/sparse |
-| [`docs/EVAL.md`](docs/EVAL.md) / [`EVAL_RESULTS.json`](docs/EVAL_RESULTS.json) | Hash fixture numbers |
-| [`docs/EVAL_MINILM.md`](docs/EVAL_MINILM.md) / [`EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) | Measured MiniLM numbers |
-| [`docs/SECURITY.md`](docs/SECURITY.md) | Threat boundaries and privacy |
-| [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) | Portfolio release blockers checklist |
-| [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) | Historical build brief (superseded by shipped code + amendments) |
-| [`docs/REVIEW_AMENDMENTS.md`](docs/REVIEW_AMENDMENTS.md) | Binding design constraints (ports, HR-1…HR-5) |
-| [`docs/GITHUB_METADATA.md`](docs/GITHUB_METADATA.md) | Private-release About text, topics (no OSS topic until licensed) |
+| [`docs/EVALUATION.md`](docs/EVALUATION.md) | Metrics method, hash vs MiniLM results |
+| [`docs/EVAL_RESULTS.json`](docs/EVAL_RESULTS.json) | Hash fixture numbers |
+| [`docs/EVAL_RESULTS_MINILM.json`](docs/EVAL_RESULTS_MINILM.json) | Measured MiniLM numbers |
+| [`docs/GITHUB_METADATA.md`](docs/GITHUB_METADATA.md) | Suggested GitHub About text and topics |
 | [`frontend/README.md`](frontend/README.md) | UI architecture, ports, screenshots, tests |
+| [`LICENSE`](LICENSE) | MIT |
 
 <p align="right"><a href="#readme-top">↑ back to top</a></p>

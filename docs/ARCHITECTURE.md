@@ -12,7 +12,7 @@ Evidence-first HR policy assistant: hybrid retrieval over versioned documents, e
 | Vector store | Dense chunk embeddings | Qdrant local path | Qdrant server `6301` |
 | Embeddings | Query/document vectors | MiniLM on disk (`models/`) or `hash` for tests/eval | Same image cache |
 
-Ports and loopback rules are binding in [`REVIEW_AMENDMENTS.md`](REVIEW_AMENDMENTS.md) (C-6, C-2).
+Ports: API `8101`, UI `5101`, Postgres `5401`, Qdrant `6301`. Loopback bind by default.
 
 ## Component map
 
@@ -77,8 +77,8 @@ Defaults (see `app/config.py`): `bm25_k1=1.5`, `bm25_b=0.75`, `rrf_k=60`, `evide
 ## Source of truth and versioning
 
 1. **Database rows are authoritative.** Every dense or sparse hit is post-filtered against current chunks (`Chunk.is_current`, `DocumentVersion.is_current`, audience, optional category) before it can be cited (`post_filter_chunks`).
-2. **Corpus version.** BM25 document frequency / average length live in `CorpusState.corpus_version` and related term tables; ingest bumps the version so multiple app processes share one index key ([HR-2](REVIEW_AMENDMENTS.md)).
-3. **Supersede, do not erase history.** Replacing a file soft-deletes prior chunks/versions (`superseded_at`), removes superseded vectors, and keeps citation snapshots (`snippet`, `sha256`, `document_version_id`) so past answers remain inspectable ([HR-4](REVIEW_AMENDMENTS.md)).
+2. **Corpus version.** BM25 document frequency / average length live in `CorpusState.corpus_version` and related term tables; ingest bumps the version so multiple app processes share one index key (HR-2).
+3. **Supersede, do not erase history.** Replacing a file soft-deletes prior chunks/versions (`superseded_at`), removes superseded vectors, and keeps citation snapshots (`snippet`, `sha256`, `document_version_id`) so past answers remain inspectable (HR-4).
 4. **Reconcile.** `scripts/reconcile_index.py` / `app/reconcile.py` removes stale Qdrant points and restores missing current vectors.
 
 ## Ingestion and parsing threat boundary
@@ -88,7 +88,7 @@ Uploads go through size/extension checks, then `parse_in_subprocess` with timeou
 - Unterminated PDF inline image (`BI`…`ID` without `EI`) → fail
 - Zip-bomb DOCX (uncompressed size / compression ratio caps) → fail
 
-Pinned `pypdf` satisfies the advisory set listed in [REVIEW_AMENDMENTS.md](REVIEW_AMENDMENTS.md) HR-3.
+Pinned `pypdf` for known PDF parser advisories.
 
 ## Failure modes
 
@@ -117,16 +117,14 @@ OpenAPI: `http://127.0.0.1:8101/docs` when the API is running.
 
 ## Frontend responsibilities
 
-- `Ask` + `AnswerPanel`: quotes, conflict, abstention, retrieval inspector
-- `Library` / `Versions`: document list and revision history
-- `Source`: highlighted cited passage for a version/chunk
+- `Ask` + `AnswerPanel`: quotes, conflict, abstention, Retrieval Telemetry drawer
+- `Library` / `Versions`: document list (POL-SEC-xx ids) and revision history
+- `Source`: split-pane reader with cited-passage highlight
 - `Settings`: demo reset / delete-all; persistent “Local demo · synthetic data” banner when `APP_ENV=demo`
 
 ## Related docs
 
-- Design constraints: [REVIEW_AMENDMENTS.md](REVIEW_AMENDMENTS.md)
 - Decisions: [ENGINEERING_DECISIONS.md](ENGINEERING_DECISIONS.md)
-- Evaluation: [EVALUATION.md](EVALUATION.md) (hash fixture + MiniLM tables)
-- Security: [SECURITY.md](SECURITY.md)
-- Release blockers: [RELEASE_READINESS.md](RELEASE_READINESS.md)
+- Evaluation: [EVALUATION.md](EVALUATION.md)
+- Scope and limitations: root [README.md](../README.md)
 - Frontend: [../frontend/README.md](../frontend/README.md)

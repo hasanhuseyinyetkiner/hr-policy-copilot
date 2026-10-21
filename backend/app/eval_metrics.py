@@ -1,6 +1,6 @@
 """Evaluation metrics for the seeded HR policy corpus.
 
-Method (documented for README / EVAL.md):
+Method (documented for README / docs/EVALUATION.md):
 - Gold labels live in ``data/eval/questions.jsonl``.
 - Recall@K: share of non-abstain questions where any gold title appears
   among the top-K citations (K = max_passages, default 4).
@@ -181,7 +181,7 @@ def evaluate_all(
 
 
 def format_markdown(report: dict[str, Any]) -> str:
-    """Render a durable results table for docs/EVAL.md or docs/EVAL_MINILM.md."""
+    """Render a console/results table (JSON is written to docs/; narrative in EVALUATION.md)."""
     n = report.get("n_questions", "?")
     backend = report.get("embedding_backend", "unknown")
     measured = report.get("measured_at")
@@ -193,10 +193,7 @@ def format_markdown(report: dict[str, Any]) -> str:
     )
     raw_name = "EVAL_RESULTS.json" if is_hash else "EVAL_RESULTS_MINILM.json"
     other = (
-        "For the **separate** MiniLM-on-seed run (same n=11 labels, different embedder), "
-        "see [`EVAL_MINILM.md`](EVAL_MINILM.md)."
-        if is_hash
-        else "For the **hash fixture** table (deterministic embedder), see [`EVAL.md`](EVAL.md)."
+        "Update [`EVALUATION.md`](EVALUATION.md) if these scores change."
     )
     caveat_row = (
         (
