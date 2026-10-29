@@ -210,6 +210,7 @@ def evaluate_all(
         )
     )
     heldout = dataset_id.startswith("heldout")
+    development = dataset_id == "heldout-v1"
     sample = next(iter(by_mode.values()), None)
     report: dict[str, Any] = {
         "k": k,
@@ -219,9 +220,11 @@ def evaluate_all(
         "corpus": "seeded synthetic Northwind People policies (data/demo)",
         "dataset_id": dataset_id,
         "question_set": question_set,
-        "held_out": heldout,
+        "held_out": heldout and not development,
         "leak_policy": (
-            "Held-out labels must not be used to tune evidence thresholds or retrieval params."
+            "Previously held out; revision failures informed a code change. Development regression set."
+            if development
+            else "Held-out labels must not be used to tune evidence thresholds or retrieval params."
             if heldout
             else "Seed fixture may be used for wiring checks; not a production leaderboard."
         ),
@@ -254,18 +257,19 @@ def format_markdown(report: dict[str, Any]) -> str:
     measured = report.get("measured_at")
     question_set = report.get("question_set", "data/eval/questions.jsonl")
     dataset_id = report.get("dataset_id", "seed")
-    heldout = bool(report.get("held_out"))
+    heldout = str(report.get("dataset_id", "")).startswith("heldout")
+    dataset_flag = " --dataset heldout/v1" if dataset_id == "heldout-v1" else ""
     is_hash = backend == "hash"
     if heldout:
         title = (
-            "# Held-out evaluation results (hash)"
+            "# Development regression results (hash)"
             if is_hash
-            else "# Held-out evaluation results (local MiniLM)"
+            else "# Development regression results (local MiniLM)"
         )
         raw_name = (
-            "EVAL_RESULTS_HELDOUT_V1.json"
+            "EVAL_RESULTS_DEVELOPMENT_V1.json"
             if is_hash
-            else "EVAL_RESULTS_HELDOUT_V1_MINILM.json"
+            else "EVAL_RESULTS_DEVELOPMENT_V1_MINILM.json"
         )
     else:
         title = (
@@ -296,7 +300,7 @@ def format_markdown(report: dict[str, Any]) -> str:
     ]
     if heldout:
         lines.append(
-            "Held-out set: **do not** tune evidence thresholds or retrieval params from these scores."
+            "Previously held out; revision failures informed a code change. This is a development set."
         )
     if measured:
         lines.append(f"Measured at (UTC): `{measured}`.")
@@ -307,10 +311,10 @@ def format_markdown(report: dict[str, Any]) -> str:
             "",
             "| This run | Not this run |",
             "| --- | --- |",
-            "| Fixture / labeled validation on n=11 synthetic rows "
+            f"| Labeled validation on {n} synthetic questions "
             "| A claim that hybrid beats dense on real HR corpora |",
             f"| {caveat_row[0]} | {caveat_row[1]} |",
-            "| Expected near-perfect scores on a tiny synthetic set "
+            "| Results on a small synthetic set "
             "| Held-out production leaderboard |",
             "",
             f"{other} Narrative and gaps: [`EVALUATION.md`](EVALUATION.md).",
@@ -323,7 +327,7 @@ def format_markdown(report: dict[str, Any]) -> str:
             "| MRR | Reciprocal rank of first gold title |",
             "| Citation precision | Cited titles ⊆ gold titles (answerable) |",
             "| Faithfulness | `sha256(citation.snippet)` matches stored hash |",
-            "| Abstention accuracy | Correct abstain on abstain/ambiguous |",
+            "| Abstention accuracy | Correct abstain on abstain/ambiguous/superseded questions |",
             "",
             "Modes via `retrieval_preference`: `hybrid` = BM25 + dense + RRF; "
             "`dense` = dense-only; `sparse` = BM25-only.",
@@ -359,7 +363,7 @@ def format_markdown(report: dict[str, Any]) -> str:
             f"{sample['abstain_total']} abstain+ambiguous; "
             f"`answer_hits={sample['answer_hits']}`, "
             f"`abstain_correct={sample['abstain_correct']}/{sample['abstain_total']}` "
-            f"for each mode. Raw JSON: [`{raw_name}`]({raw_name})."
+            f"for primary mode `{sample['mode']}`. Raw JSON: [`{raw_name}`]({raw_name})."
         )
     lines.extend(
         [
@@ -373,8 +377,8 @@ def format_markdown(report: dict[str, Any]) -> str:
     if is_hash:
         lines.extend(
             [
-                "uv run python ../scripts/run_eval.py",
-                "# equivalent: --backend hash --modes hybrid,dense,sparse",
+                f"uv run python ../scripts/run_eval.py{dataset_flag}",
+                "# Optional: --backend hash --modes hybrid,dense,sparse",
                 "```",
                 "",
                 "MiniLM (writes separate files; does not overwrite this table):",
@@ -382,7 +386,7 @@ def format_markdown(report: dict[str, Any]) -> str:
                 "```powershell",
                 "cd backend",
                 "uv run python -m app.download_model   # if models/ missing",
-                "uv run python ../scripts/run_eval.py --backend local",
+                f"uv run python ../scripts/run_eval.py --backend local{dataset_flag}",
                 "```",
                 "",
             ]
@@ -391,7 +395,8 @@ def format_markdown(report: dict[str, Any]) -> str:
         lines.extend(
             [
                 "uv run python -m app.download_model   # if models/ missing",
-                "uv run python ../scripts/run_eval.py --backend local --modes hybrid,dense,sparse",
+                "uv run python ../scripts/run_eval.py --backend local "
+                f"--modes hybrid,dense,sparse{dataset_flag}",
                 "```",
                 "",
                 "If the model directory is missing, the runner exits without inventing scores.",

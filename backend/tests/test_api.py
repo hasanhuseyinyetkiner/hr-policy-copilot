@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 from qdrant_client.models import PointStruct
 from sqlalchemy import select
@@ -174,6 +175,29 @@ def test_superseded_version_is_not_cited(seeded: TestClient) -> None:
     assert remote_doc["policy_id"] == "POL-SEC-02"
     versions = seeded.get(f"/api/documents/{remote_doc['id']}/versions").json()
     assert any(item["revision"] == 1 and item["is_current"] is False for item in versions)
+
+
+@pytest.mark.parametrize("question", [
+    "What did the previous version of the remote work policy require?",
+    "How many office days did Remote Work Policy version 1 require?",
+    "How many office days did version v1 of the remote work policy require?",
+    "How many office days did the first version of the remote work policy require?",
+    "What does revision 2 of the remote work policy say about office days?",
+])
+def test_version_scoped_questions_do_not_cite_current_as_historical(
+    seeded: TestClient, question: str,
+) -> None:
+    body = _query(seeded, question)
+    assert body["mode"] == "abstain"
+    assert body["citations"] == []
+    assert body["abstention_reason"] == "unsupported_version_scope"
+    assert body["retrieval_telemetry"]["threshold_decision"] == "unsupported_version_scope"
+    assert "version history" in body["content"]
+    assert all(not row["used"] for row in body["evidence"])
+    assert all(
+        row["rejected_reason"] == "unsupported_version_scope"
+        for row in body["evidence"] if row["clears_abstention_gate"]
+    )
 
 
 def test_citation_span_matches_chunk_sha(seeded: TestClient) -> None:

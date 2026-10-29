@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from uuid import uuid4
 
 from sqlalchemy import func, select
@@ -34,6 +35,21 @@ ABSTAIN_PREAMBLE = (
     "No answer is shown because the indexed policies did not clear the evidence threshold."
 )
 SPARSE_NOTICE = "Dense retrieval is unavailable. This answer uses sparse search only."
+HISTORICAL_PREAMBLE = (
+    "This search only answers from current policy versions. Historical or explicitly numbered "
+    "versions cannot be answered here; inspect the document's version history."
+)
+
+
+def _requests_version_scope(question: str) -> bool:
+    """Conservatively reject version-scoped requests that current-only search cannot honor."""
+    return bool(re.search(
+        r"\b(?:revision|version)\s*(?:#\s*)?v?\d+\b"
+        r"|\b(?:previous|prior|earlier|older|old|superseded|historical|first|second|third)\s+"
+        r"(?:policy\s+)?(?:revision|version|edition|policy)\b"
+        r"|\b(?:revision|version)\s+(?:history|before|prior to)\b",
+        question, re.IGNORECASE,
+    ))
 
 
 def answer_question(
@@ -95,7 +111,12 @@ def answer_question(
         )
         by_id = {hit.scored.chunk_id: hit for hit in result.hits}
         chosen_hits = [by_id[item.chunk_id] for item in chosen]
-        abstention = _abstention_reason(session, chosen_hits)
+        version_scoped = _requests_version_scope(question)
+        if version_scoped:
+            chosen_hits = []
+        abstention = (
+            "unsupported_version_scope" if version_scoped else _abstention_reason(session, chosen_hits)
+        )
         conflict_note = _conflict_note(chosen_hits) if contradictory else None
         superseded = _superseded_hints(
             session,
@@ -104,14 +125,19 @@ def answer_question(
             audience=audience,
         )
         notice = SPARSE_NOTICE if not result.dense_available else None
-        preamble = EXTRACT_PREAMBLE if chosen_hits else ABSTAIN_PREAMBLE
+        preamble = HISTORICAL_PREAMBLE if version_scoped else (
+            EXTRACT_PREAMBLE if chosen_hits else ABSTAIN_PREAMBLE
+        )
         if chosen_hits:
             content = preamble + "\n\n" + "\n\n".join(hit.chunk.text for hit in chosen_hits)
             mode = "extractive"
         else:
             content = preamble
             mode = "abstain"
-        evidence = _evidence_rows(result.hits, {hit.chunk.id for hit in chosen_hits}, thresholds)
+        evidence = _evidence_rows(
+            result.hits, {hit.chunk.id for hit in chosen_hits}, thresholds,
+            version_scoped=version_scoped,
+        )
         threshold_out = EvidenceThresholdsOut(
             min_overlap=thresholds.min_overlap,
             min_bm25=thresholds.min_bm25,
@@ -121,7 +147,8 @@ def answer_question(
         threshold_decision = (
             "cite"
             if chosen_hits
-            else ("no_documents" if abstention == "no_documents" else "abstain_below_threshold")
+            else ("unsupported_version_scope" if version_scoped else
+                  "no_documents" if abstention == "no_documents" else "abstain_below_threshold")
         )
         telemetry = _telemetry_out(result.telemetry, threshold_decision=threshold_decision)
         message = Message(
@@ -294,6 +321,8 @@ def _evidence_rows(
     hits: list[RetrievalHit],
     chosen_ids: set[str],
     thresholds: Thresholds,
+    *,
+    version_scoped: bool = False,
 ) -> list[EvidenceOut]:
     ordered = sorted(hits, key=lambda hit: (-hit.scored.rrf, hit.scored.chunk_id))
     visible = ordered[:8]
@@ -310,6 +339,8 @@ def _evidence_rows(
             reason = "instruction_override"
         elif not passes_threshold(hit.scored, thresholds):
             reason = "below_evidence_threshold"
+        elif version_scoped:
+            reason = "unsupported_version_scope"
         else:
             reason = "not_in_top_passages"
         preview = hit.chunk.text[:180]

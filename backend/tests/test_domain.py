@@ -12,6 +12,7 @@ from app.domain.evidence import ScoredChunk, Thresholds, choose_passages
 from app.domain.fusion import reciprocal_rank_fusion
 from app.domain.injection import is_instruction_override
 from app.domain.tokenize import tokenize
+from app.eval_metrics import format_markdown
 from app.parsing.extract import extract_document
 from app.parsing.hostile import has_unterminated_inline_image, inspect_docx_zip
 
@@ -22,6 +23,21 @@ def test_tokenizer_keeps_hyphenated_terms_and_digits() -> None:
     assert "full-time" in tokens
     assert "how" not in tokens
     assert "2" in tokenize("Revision 2")
+
+
+def test_development_eval_summary_uses_its_own_size_and_command() -> None:
+    report = {
+        "n_questions": 12,
+        "dataset_id": "heldout-v1",
+        "question_set": "data/eval/heldout/v1/questions.jsonl",
+        "embedding_backend": "hash",
+        "k": 4,
+        "modes": {},
+    }
+    summary = format_markdown(report)
+    assert "Labeled validation on 12 synthetic questions" in summary
+    assert "run_eval.py --dataset heldout/v1" in summary
+    assert "n=11" not in summary
 
 
 def test_bm25_prefers_the_rare_term() -> None:

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { formatDate, indexingLabel, sourceHref } from "./api.ts";
@@ -34,6 +34,16 @@ describe("answer presentation", () => {
     );
     expect(screen.getByTestId("abstain")).toHaveTextContent("No cited answer");
     expect(screen.queryByTestId("citation-link")).not.toBeInTheDocument();
+  });
+
+  it("distinguishes unsupported version scope from insufficient evidence", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <AnswerPanel message={{ ...abstain, abstention_reason: "unsupported_version_scope" }} />
+      </MemoryRouter>,
+    );
+    expect(within(container).getByText("Version scope unsupported")).toBeInTheDocument();
+    expect(within(container).queryByText("Insufficient evidence")).not.toBeInTheDocument();
   });
 
   it("links a citation to the cited revision", () => {
