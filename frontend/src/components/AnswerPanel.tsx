@@ -222,7 +222,10 @@ function StatusPill({ message }: { message: Message }) {
   if (message.mode === "abstain") {
     return (
       <span className="inline-flex items-center gap-2 rounded-full bg-[var(--paper)] px-3 py-1 text-sm">
-        <CircleOff size={14} aria-hidden="true" /> Insufficient evidence
+        <CircleOff size={14} aria-hidden="true" />
+        {message.abstention_reason === "unsupported_version_scope"
+          ? "Version scope unsupported"
+          : "Insufficient evidence"}
       </span>
     );
   }

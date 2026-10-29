@@ -9,10 +9,10 @@ Usage (from repo root, with backend deps):
 
 Defaults write fixture (hash) results to docs/EVAL_RESULTS.json.
 MiniLM runs write docs/EVAL_RESULTS_MINILM.json — they never overwrite the hash fixture.
-Held-out runs write docs/EVAL_RESULTS_HELDOUT_V1.json (and _MINILM suffix when local).
+The former held-out v1 writes docs/EVAL_RESULTS_DEVELOPMENT_V1.json (with a _MINILM suffix when local).
 Narrative tables live in docs/EVALUATION.md.
 
-Held-out labels must NOT be used to tune retrieval thresholds or fusion params.
+The formerly held-out v1 set is now development regression data. Do not tune thresholds or fusion parameters on it.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         default="seed",
-        help="seed (data/eval/questions.jsonl) or heldout/v1 (held-out, not for tuning).",
+        help="seed (data/eval/questions.jsonl) or heldout/v1 (formerly held out; now development regression data).",
     )
     return parser.parse_args()
 
@@ -62,7 +62,7 @@ def parse_args() -> argparse.Namespace:
 def _artifact_path(dataset_id: str, backend: str) -> Path:
     out_dir = REPO / "docs"
     if dataset_id.startswith("heldout"):
-        base = "EVAL_RESULTS_HELDOUT_V1"
+        base = "EVAL_RESULTS_DEVELOPMENT_V1"
     else:
         base = "EVAL_RESULTS"
     if backend == "local":
